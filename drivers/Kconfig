@@ -316,5 +316,10 @@ source "drivers/sensorhub/vendor/Kconfig"
 source "drivers/battery/charger/s2mf301_charger/Kconfig"
 source "drivers/battery/common/Kconfig"
 source "drivers/samsung/Kconfig"
+source "drivers/battery/charger/sm5714_charger/Kconfig"
+source "drivers/battery/fuelgauge/sm5714_fuelgauge/Kconfig"
+source "drivers/muic/sm/sm5714/Kconfig"
+source "drivers/mfd/sm/sm5714/Kconfig"
+source "drivers/usb/typec/sm/sm5714/Kconfig"
 
 endmenu
