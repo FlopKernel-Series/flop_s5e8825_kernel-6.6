@@ -33,7 +33,7 @@
 #include <exynos_drm_format.h>
 #include <exynos_drm_decon.h>
 #include <exynos_drm_debug.h>
-#include <exynos_drm_modifier.h>
+#include <uapi/drm/exynos_drm_modifier.h>
 #if IS_ENABLED(CONFIG_ARM_EXYNOS_DEVFREQ)
 #include <soc/samsung/exynos-devfreq.h>
 #endif
