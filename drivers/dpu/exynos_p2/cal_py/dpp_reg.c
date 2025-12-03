@@ -22,7 +22,7 @@
 #include <linux/iopoll.h>
 
 #include <exynos_dpp_coef.h>
-#include <exynos_drm_modifier.h>
+#include <uapi/drm/exynos_drm_modifier.h>
 #include <exynos_drm_format.h>
 #include <cal_config.h>
 #include <dpp_cal.h>
