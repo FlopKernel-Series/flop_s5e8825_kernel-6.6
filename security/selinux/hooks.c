@@ -210,6 +210,8 @@ static int selinux_lsm_notifier_avc_callback(u32 event)
 static void cred_init_security(void)
 {
 	struct task_security_struct *tsec;
+
+	tsec = selinux_cred(unrcu_pointer(current->real_cred));
 	tsec->osid = tsec->sid = SECINITSID_KERNEL;
 }
 
@@ -7003,6 +7005,7 @@ static int selinux_uring_cmd(struct io_uring_cmd *ioucmd)
  *
  * Please follow block comment delimiters in the list to keep this order.
  */
+static struct security_hook_list selinux_hooks[] __ro_after_init = {
 	LSM_HOOK_INIT(binder_set_context_mgr, selinux_binder_set_context_mgr),
 	LSM_HOOK_INIT(binder_transaction, selinux_binder_transaction),
 	LSM_HOOK_INIT(binder_transfer_binder, selinux_binder_transfer_binder),
