@@ -176,3 +176,4 @@ endif
 ifeq ($(CONFIG_SCSC_PCIE), m)
 ccflags-y += -DCONFIG_SCSC_PCIE
 endif
+CFLAGS_mgt.o += -Wno-attribute-warning
