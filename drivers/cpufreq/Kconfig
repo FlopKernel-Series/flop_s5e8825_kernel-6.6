@@ -358,4 +358,29 @@ config QORIQ_CPUFREQ
 	  which are capable of changing the CPU's frequency dynamically.
 
 endif
+
+# SPDX-License-Identifier: GPL-2.0
+#
+# Samsung SoC drivers
+#
+
+config ARM_FREQ_QOS_TRACER
+	tristate "SAMSUNG CPUFreq QoS Tracer"
+	depends on ARCH_EXYNOS
+	help
+	  Enable CPUFreq QoS Tracer
+
+config ARM_EXYNOS_ACME
+    tristate "SAMSUNG EXYNOS CPUFreq driver"
+    default n
+    depends on ARCH_EXYNOS
+    help
+        This adds the CPUFreq driver for every exynos chipset
+
+config ARM_EXYNOS_DSU_FREQ
+	tristate "SAMSUNG EXYNOS DSU Frequency driver"
+	help
+	  This adds the DSUFreq driver for specific exynos chipset. Exynos
+	  DSUFreq supported SoC must use the exynos CAL framework.
+
 endmenu

@@ -1,0 +1,1 @@
+obj-$(CONFIG_SOC_S5E8825) += gud-s5e8825/

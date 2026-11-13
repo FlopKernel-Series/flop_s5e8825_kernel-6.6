@@ -71,3 +71,14 @@ obj-$(CONFIG_KEYBOARD_TEGRA)		+= tegra-kbc.o
 obj-$(CONFIG_KEYBOARD_TM2_TOUCHKEY)	+= tm2-touchkey.o
 obj-$(CONFIG_KEYBOARD_TWL4030)		+= twl4030_keypad.o
 obj-$(CONFIG_KEYBOARD_XTKBD)		+= xtkbd.o
+
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for the input core pmic drivers.
+#
+
+obj-$(CONFIG_KEYBOARD_S2P)              += s2p_key.o
+obj-$(CONFIG_KEYBOARD_S2MPS27)          += s2mps27_key.o
+obj-$(CONFIG_KEYBOARD_S2SE910)          += s2se910_key.o
+obj-$(CONFIG_KEYBOARD_S2MPU15)          += s2mpu15_key.o
+obj-$(CONFIG_KEYBOARD_S2MPU13)          += s2mpu13-key.o

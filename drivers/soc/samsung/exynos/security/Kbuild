@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Makefile for EL3 security driver solutions
+#
+obj-$(CONFIG_EXYNOS_SECURE_LOG)		+= exynos-seclog.o
+obj-$(CONFIG_EXYNOS_TZASC_FAIL_DETECTOR)	+= exynos-tzasc.o
+obj-$(CONFIG_EXYNOS_SEH)		+= exynos-seh.o
+
+# Exynos CryptoManager
+obj-$(CONFIG_EXYNOS_CRYPTOMANAGER)	+= exynos-cm.o
+
+# Exynos TRNG
+obj-$(CONFIG_HW_RANDOM_EXYNOS_SWD) += exyswd-rng.o
+
+# Exynos SDM
+obj-$(CONFIG_EXYNOS_SDM) += exynos-sdm.o
+
+# Exynos Secure Memory
+obj-$(CONFIG_EXYNOS_CONTENT_PATH_PROTECTION) += secmem.o

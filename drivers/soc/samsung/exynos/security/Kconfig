@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Samsung SoC drivers
+#
+
+config EXYNOS_SECURE_LOG
+        tristate "Exynos Secure Log"
+        default m
+        help
+        Support Exynos Secure Log
+
+config EXYNOS_TZASC_FAIL_DETECTOR
+        tristate "Exynos TZASC Fail Detector"
+        default m
+        help
+        Support Exynos TZASC Fail Detector
+
+config EXYNOS_SEH
+        tristate "Exynos Smart Exception Handler"
+        default m
+        help
+        Support Exynos Smart Exception Handler
+
+config EXYNOS_CRYPTOMANAGER
+	tristate "Exynos Samsung CryptoManager"
+	default m
+	help
+	  Support Exynos Samsung CryptoManager
+
+config HW_RANDOM_EXYNOS_SWD
+	tristate "EXYNOS SWD HW random number generator support"
+	depends on ARCH_EXYNOS
+	default m
+	help
+	  This driver provides kernel-side support for TRNG hardware
+	  found in secure world by using smc call
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called exynos-rng.
+	  If unsure, say Y.
+
+config EXYNOS_SDM
+	tristate "Exynos Samsung Security Dump Manager"
+	depends on DEBUG_SNAPSHOT
+	default m
+	help
+	  Support Exynos Samsung Security Dump Manager
+
+config EXYNOS_CONTENT_PATH_PROTECTION
+	tristate "Exynos Secure Memory Support"
+	depends on ARCH_EXYNOS
+	default m
+	help
+	  Support Exynos Secure Memory Memory for content path protection
