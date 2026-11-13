@@ -4,3 +4,4 @@ config IS_VENDOR_INTERFACE
 	help
 	  If this config is set, Image subsystem vendor interface module is added
 	  for commuication between external camera module and vendor module.
+source "drivers/camera/camera/Kconfig"
