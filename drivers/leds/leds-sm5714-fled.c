@@ -17,7 +17,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/platform_device.h>
-#include "../../../../../external-modules/camera/camera/vendor/mcd_v2/is-sysfs.h" 
+#include "../camera/camera/vendor/mcd_v2/is-sysfs.h" 
 
 #define SM5714_FLED_VERSION "XXX.UA1"
 

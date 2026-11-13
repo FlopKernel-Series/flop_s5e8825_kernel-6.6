@@ -24,7 +24,7 @@
 
 #include <linux/muic/common/muic.h>
 #include <linux/usb/typec/slsi/common/usbpd_ext.h>
-#include "../../../../../external-modules/camera/camera/vendor/mcd_v2/is-sysfs.h" 
+#include "../camera/camera/vendor/mcd_v2/is-sysfs.h" 
 
 #define CONTROL_I2C	0
 #define CONTROL_GPIO	1

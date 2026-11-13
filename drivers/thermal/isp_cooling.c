@@ -30,7 +30,7 @@
 #include <soc/samsung/ect_parser.h>
 #endif
 #include "exynos_tmu.h"
-#include "../../../../../common/drivers/thermal/thermal_core.h"
+#include "thermal_core.h"
 
 /**
  * struct isp_cooling_device - data for cooling device with isp

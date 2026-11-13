@@ -17,8 +17,8 @@
 #include <drm/drm_crtc.h>
 
 #if IS_ENABLED(CONFIG_SAMSUNG_TUI)
-#include "../../../../../device/erd/erd8825/drivers/tee/tui/stui_hal.h"
-#include "../../../../../device/erd/erd8825/drivers/tee/tui/stui_core.h"
+#include "../tee/tui/stui_hal.h"
+#include "../tee/tui/stui_core.h"
 #endif
 
 struct resolution_info {
