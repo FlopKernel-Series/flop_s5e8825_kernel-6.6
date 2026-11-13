@@ -29,11 +29,6 @@
 			size = <0x800000>;
 		};
 
-		log_itmon_history: log_itmon_history {
-			compatible = "log_itmon_history";
-			reg = <0 0xEFFEE000 0x1000>;
-		};
-
 		log_itmon: log_itmon {
 			reg = <0 0xEFFEF000 0x10000>;
 			no-map;
@@ -155,11 +150,6 @@
 		seclog_mem: seclog_mem {
 			compatible = "exynos,seclog";
 			reg = <0 SECLOG_LOG_BUF_BASE SECLOG_LOG_BUF_TOTAL_SIZE>;
-		};
-
-		teegris_rmem: teegris_rmem {
-			compatible = "exynos,teegris_rmem";
-			reg = <0x0 0xED310000 0x2000>;
 		};
 
 		log_bcm: log_bcm {
