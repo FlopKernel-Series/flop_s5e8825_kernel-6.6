@@ -453,6 +453,7 @@ static void mt_get_feature(struct hid_device *hdev, struct hid_report *report)
 	int ret;
 	u32 size = hid_report_len(report);
 	u8 *buf;
+	struct hid_report_enum *rep_enum;
 
 	/*
 	 * Do not fetch the feature report if the device has been explicitly
@@ -471,8 +472,9 @@ static void mt_get_feature(struct hid_device *hdev, struct hid_report *report)
 		dev_warn(&hdev->dev, "failed to fetch feature %d\n",
 			 report->id);
 	} else {
+		rep_enum = &hdev->report_enum[HID_FEATURE_REPORT];
 		/* The report ID in the request and the response should match */
-		if (report->id != buf[0]) {
+		if (rep_enum->numbered && report->id != buf[0]) {
 			hid_err(hdev, "Returned feature report did not match the request\n");
 			goto free;
 		}
