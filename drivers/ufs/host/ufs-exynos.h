@@ -200,6 +200,7 @@ static inline u32 __get_upmcrs(struct exynos_ufs *ufs)
 }
 
 int exynos_ufs_init_dbg(struct ufs_vs_handle *);
+void exynos_ufs_exit_dbg(struct ufs_vs_handle *);
 int exynos_ufs_dbg_set_lanes(struct ufs_vs_handle *,
 				struct device *dev, u32);
 void exynos_ufs_dump_info(struct ufs_hba *, struct ufs_vs_handle *,
