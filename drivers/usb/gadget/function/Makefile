@@ -70,3 +70,14 @@ usb_f_rndis_mp-y		:= f_rndis_mp.o u_ether_mp.o rndis_mp.o
 obj-$(CONFIG_USB_F_RNDIS_MP)	+= usb_f_rndis_mp.o
 usb_f_dm-y			:= f_dm.o
 obj-$(CONFIG_USB_CONFIGFS_F_DM) += usb_f_dm.o
+
+# SPDX-License-Identifier: GPL-2.0
+#
+# USB peripheral controller drivers
+# USB Functions
+usb_f_conn_gadget-y             := f_conn_gadget.o
+obj-$(CONFIG_USB_F_CONN_GADGET) += usb_f_conn_gadget.o
+usb_f_ss_mon_gadget-y             := f_ss_mon_gadget.o
+obj-$(CONFIG_USB_F_SS_MON_GADGET) += usb_f_ss_mon_gadget.o
+
+subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/gadget/function

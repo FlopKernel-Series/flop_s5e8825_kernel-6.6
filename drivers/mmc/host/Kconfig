@@ -1124,3 +1124,17 @@ config SEC_MMC_FEATURE
 	  Enable Samsung MMC/SD feature support.
 	  Enabling this allows kernel to use SEC specific feature
 	  defined and implemented by SEC.
+
+# drivers/mmc/host/Kconfig
+#
+# Copyright (c) 2010-2024 Samsung Electronics Co., Ltd.
+#		http://www.samsung.com/
+#
+# Licensed under GPLv2
+#
+comment "Samsung Mobile MMC Options"
+menuconfig SEC_MMC
+	bool "Samsung MMC feature"
+	default n
+	help
+	  Enable Samsung mmc feature.
