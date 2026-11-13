@@ -9,15 +9,15 @@ hdr-dir := exynos_p2
 endif
 
 
-subdir-ccflags-y := -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu  		\
-                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/include 	\
-                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/cal_common 	\
-                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/exynos_p2	\
-                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/exynos_p2/cal_py	\
-                    -I${ROOT_DIR}/exynos/device/erd/erd8825/drivers/gpu/drm/samsung/panel \
-                    -I${ROOT_DIR}/exynos/device/erd/erd8825/include
+subdir-ccflags-y := -I$(srctree)/drivers/dpu  		\
+                    -I$(srctree)/drivers/dpu/include 	\
+                    -I$(srctree)/drivers/dpu/cal_common 	\
+                    -I$(srctree)/drivers/dpu/exynos_p2	\
+                    -I$(srctree)/drivers/dpu/exynos_p2/cal_py	\
+                    -I$(srctree)/drivers/gpu/drm/samsung/panel \
+                    -I$(srctree)/include
 
-subdir-ccflags-$(CONFIG_DRM_MCD_COMMON)	+= -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/mcd_cal
+subdir-ccflags-$(CONFIG_DRM_MCD_COMMON)	+= -I$(srctree)/drivers/dpu/mcd_cal
 
 exynos-drm-$(CONFIG_DRM_SAMSUNG_DPU) := exynos_drm_drv.o  exynos_drm_fb.o exynos_drm_format.o		\
 		exynos_drm_crtc.o exynos_drm_plane.o exynos_drm_connector.o	\

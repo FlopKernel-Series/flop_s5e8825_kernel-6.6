@@ -43,9 +43,9 @@ obj-$(CONFIG_SND_USB_LINE6)	+= line6/
 #
 
 #ifdef CONFIG_SND_EXYNOS_USB_AUDIO_MODULE
-subdir-ccflags-y	+= -I${ROOT_DIR}/${KERNEL_DIR}/sound \
-			   -I${ROOT_DIR}/${KERNEL_DIR}/sound/usb \
-			   -I${ROOT_DIR}/${KERNEL_DIR}/include/linux
+subdir-ccflags-y	+= -I$(srctree)/sound \
+			   -I$(srctree)/sound/usb \
+			   -I$(srctree)/include/linux
 #endif
 
 obj-$(CONFIG_SND_EXYNOS_USB_AUDIO_MODULE) += exynos-usb-audio-offloading.o

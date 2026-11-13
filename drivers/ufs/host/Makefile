@@ -16,14 +16,14 @@ obj-$(CONFIG_SCSI_UFS_TI_J721E) += ti-j721e-ufs.o
 # SPDX-License-Identifier: GPL-2.0-only
 ifdef CONFIG_SCSI_UFS_SAMSUNG
 subdir-ccflags-y += $(UFS_DEFS) \
-		    -I${ROOT_DIR}/${KERNEL_DIR}/drivers/ufs/core \
-		    -I${ROOT_DIR}/${KERNEL_DIR}/drivers/ufs/host \
-		    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/ufs/host/${EXYNOS_SOC}
+		    -I$(srctree)/drivers/ufs/core \
+		    -I$(srctree)/drivers/ufs/host \
+		    -I$(srctree)/drivers/ufs/host/s5e8825
 endif
 
 obj-$(CONFIG_SCSI_UFS_SAMSUNG)	+= ufs-exynos-core.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_SAMSUNG) += ufs-exynos.o \
-			$(EXYNOS_SOC)/ufs-cal-if.o
+			s5e8825/ufs-cal-if.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_PERF) += ufs-exynos-perf.o ufs-exynos-perf-v1.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_DBG) += ufs-exynos-dbg.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_EXYNOS_SRPMB) += ufs-exynos-srpmb.o
@@ -34,14 +34,14 @@ ufs-exynos-core-$(CONFIG_SEC_UFS_FEATURE) += ufs-sec-feature.o ufs-sec-sysfs.o
 # UFSHCD makefile
 ifdef CONFIG_SCSI_UFS_SAMSUNG
 subdir-ccflags-y += $(UFS_DEFS) \
-		    -I${ROOT_DIR}/${KERNEL_DIR}/drivers/ufs/core \
-	            -I${ROOT_DIR}/${KERNEL_DIR}/drivers/ufs/host \
-	            -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/ufs/host/${EXYNOS_SOC}
+		    -I$(srctree)/drivers/ufs/core \
+	            -I$(srctree)/drivers/ufs/host \
+	            -I$(srctree)/drivers/ufs/host/s5e8825
 endif
 
 obj-$(CONFIG_SCSI_UFS_SAMSUNG) += ufs-exynos-core.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_SAMSUNG) += ufs-exynos.o \
-					$(EXYNOS_SOC)/ufs-cal-if.o
+					s5e8825/ufs-cal-if.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_PERF) += ufs-exynos-perf.o ufs-exynos-perf-v1.o ufs-exynos-gear.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_DBG) += ufs-exynos-dbg.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_EXYNOS_SRPMB) += ufs-exynos-srpmb.o
@@ -54,6 +54,6 @@ obj-$(CONFIG_SEC_UFS_FEATURE) += ufs-sec-driver.o
 ufs-sec-driver-$(CONFIG_SEC_UFS_FEATURE) += ufs-sec-misc.o
 
 subdir-ccflags-y += $(UFS_DEFS) \
-                    -I${ROOT_DIR}/${KERNEL_DIR}/drivers/ufs/core \
-                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/ufs/host \
-                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/ufs/host/${EXYNOS_SOC} 
+                    -I$(srctree)/drivers/ufs/core \
+                    -I$(srctree)/drivers/ufs/host \
+                    -I$(srctree)/drivers/ufs/host/s5e8825 

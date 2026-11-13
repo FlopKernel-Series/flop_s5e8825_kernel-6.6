@@ -34,7 +34,7 @@ obj-$(CONFIG_SEC_SND_ADAPTATION) += abox_adaptation.o
 
 obj-$(CONFIG_AUDIO_EXYNOS_KUNIT_TEST) += test/
 
-subdir-ccflags-y += -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/sound/soc/samsung/exynos/abox
+subdir-ccflags-y += -I$(srctree)/sound/soc/samsung/exynos/abox
 
 snd-soc-samsung-abox-sync-aw-$(CONFIG_SEC_SND_SYNCHRONIZED_IPC_AW) += abox_synchronized_ipc_aw.o
 snd-soc-samsung-abox-sync-gdx-$(CONFIG_SEC_SND_SYNCHRONIZED_IPC_GDX) += abox_synchronized_ipc_gdx.o

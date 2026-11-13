@@ -289,11 +289,11 @@ config SND_SOC_SAMSUNG_MIDAS_WM1811
 	help
 	  Say Y if you want to add support for SoC audio on the Midas boards.
 
-source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/samsung/exynos/abox/Kconfig"
-source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/samsung/exynos/vts/Kconfig"
-source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/samsung/exynos/slif/Kconfig"
-# source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/codecs/Kconfig"
-# source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/samsung/exynos/codecs/Kconfig"
+source "sound/soc/samsung/exynos/abox/Kconfig"
+source "sound/soc/samsung/exynos/vts/Kconfig"
+source "sound/soc/samsung/exynos/slif/Kconfig"
+# source "sound/soc/codecs/Kconfig"
+# source "sound/soc/samsung/exynos/codecs/Kconfig"
 
 # SPDX-License-Identifier: GPL-2.0-only
 

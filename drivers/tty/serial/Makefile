@@ -105,4 +105,4 @@ obj-$(CONFIG_SERIAL_PKVM_PL011) += pkvm-pl011/
 
 obj-$(CONFIG_SERIAL_EXYNOS) += exynos_tty.o
 
-subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/pinctrl
+subdir-ccflags-y += -I$(srctree)/drivers/pinctrl
