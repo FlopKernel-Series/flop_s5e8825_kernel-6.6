@@ -1962,62 +1962,6 @@ static void *setup_object(struct kmem_cache *s, void *object)
 /*
  * Slab allocation and freeing
  */
-#if defined(CONFIG_KDP) && defined(CONFIG_RKP)
-static inline struct slab *alloc_kdp_slab_page(struct kmem_cache *s, gfp_t flags, int node,
-		struct kmem_cache_order_objects oo)
-{
-	struct folio *folio;
-	struct slab *slab;
-	unsigned int order = oo_order(oo);
-
-	if (is_kdp_kmem_cache(s)) {
-		void *virt_folio = rkp_ro_alloc();
-		if (!virt_folio)
-			goto def_alloc;
-
-		folio = virt_to_folio(virt_folio);
-	} else {
-def_alloc:
-		if (node == NUMA_NO_NODE)
-			folio = (struct folio *)alloc_pages(flags, order);
-		else
-			folio = (struct folio *)__alloc_pages_node(node, flags, order);
-	}
-
-	if (!folio)
-		return NULL;
-
-	slab = folio_slab(folio);
-	__folio_set_slab(folio);
-	/* Make the flag visible before any changes to folio->mapping */
-	smp_wmb();
-	if (folio_is_pfmemalloc(folio))
-		slab_set_pfmemalloc(slab);
-
-	trace_android_vh_slab_folio_alloced(order, flags);
-
-	/*
-	 * We modify the following so that slab alloc for protected data
-	 * types are allocated from our own pool.
-	 */
-	if (s->name) {
-		u64 sc, va_page, type;
-		//struct page *page = slab_page(slab);
-
-		type = get_kdp_kmem_cache_type(s->name);
-		va_page = (u64)__va(page_to_phys(folio_page(folio, 0)));
-
-		if (type) {
-			for (sc = 0; sc < ((u64)1 << oo_order(oo)); sc++) {
-				kdp_set_slab_ro(va_page, type);
-				va_page += PAGE_SIZE;
-			}
-		}
-	}
-
-	return slab;
-}
-#endif
 
 static inline struct slab *alloc_slab_page(gfp_t flags, int node,
 		struct kmem_cache_order_objects oo)
@@ -5195,10 +5139,8 @@ static struct kmem_cache * __init bootstrap(struct kmem_cache *static_cache)
 			p->slab_cache = s;
 
 #ifdef CONFIG_SLUB_DEBUG
-#ifndef CONFIG_KDP
 		list_for_each_entry(p, &n->full, slab_list)
 			p->slab_cache = s;
-#endif
 #endif
 	}
 	list_add(&s->list, &slab_caches);
