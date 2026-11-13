@@ -21,6 +21,7 @@
 #include <linux/sched/isolation.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/task_work.h>
+#include <linux/sec_debug_built.h>
 
 #include <trace/hooks/dtask.h>
 
@@ -141,8 +142,11 @@ void synchronize_irq(unsigned int irq)
 {
 	struct irq_desc *desc = irq_to_desc(irq);
 
-	if (desc)
+	if (desc) {
+		secdbg_base_built_set_task_in_sync_irq(current, irq, desc);
 		__synchronize_irq(desc);
+		secdbg_base_built_set_task_in_sync_irq(NULL, 0, NULL);
+	}
 }
 EXPORT_SYMBOL(synchronize_irq);
 
