@@ -605,3 +605,5 @@ config SDP_ADAPTIVE_MIPI_TEST
 	depends on SDP
 	help
 	  TODO: Describe config fully.
+
+source "drivers/gpu/drm/samsung/panel/s6e3fc3/Kconfig"
