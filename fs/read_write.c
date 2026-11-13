@@ -26,10 +26,6 @@
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
 
-#ifdef CONFIG_SECURITY_DEFEX
-#include <linux/defex.h>
-#endif
-
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
 	.read_iter	= generic_file_read_iter,
@@ -466,10 +462,6 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	ret = rw_verify_area(READ, file, pos, count);
 	if (ret)
 		return ret;
-#ifdef CONFIG_SECURITY_DEFEX
-	if (task_defex_enforce(current, file, -__NR_read))
-		return -EPERM;
-#endif
 	if (count > MAX_RW_COUNT)
 		count =  MAX_RW_COUNT;
 
@@ -584,10 +576,6 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 	ret = rw_verify_area(WRITE, file, pos, count);
 	if (ret)
 		return ret;
-#ifdef CONFIG_SECURITY_DEFEX
-	if (task_defex_enforce(current, file, -__NR_write))
-		return -EPERM;
-#endif
 	if (count > MAX_RW_COUNT)
 		count =  MAX_RW_COUNT;
 	file_start_write(file);
@@ -936,12 +924,6 @@ static ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
 
 	ret = import_iovec(ITER_DEST, vec, vlen, ARRAY_SIZE(iovstack), &iov, &iter);
 	if (ret >= 0) {
-#ifdef CONFIG_SECURITY_DEFEX
-		if (task_defex_enforce(current, file, -__NR_readv)) {
-			kfree(iov);
-			return -EPERM;
-		}
-#endif
 		ret = do_iter_read(file, &iter, pos, flags);
 		kfree(iov);
 	}
@@ -959,12 +941,6 @@ static ssize_t vfs_writev(struct file *file, const struct iovec __user *vec,
 
 	ret = import_iovec(ITER_SOURCE, vec, vlen, ARRAY_SIZE(iovstack), &iov, &iter);
 	if (ret >= 0) {
-#ifdef CONFIG_SECURITY_DEFEX
-		if (task_defex_enforce(current, file, -__NR_writev)) {
-			kfree(iov);
-			return -EPERM;
-		}
-#endif
 		file_start_write(file);
 		ret = do_iter_write(file, &iter, pos, flags);
 		file_end_write(file);
