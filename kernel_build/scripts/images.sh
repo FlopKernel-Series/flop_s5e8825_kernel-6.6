@@ -28,21 +28,13 @@ build_images() {
     echo -e "\n$(log_info "Building vendor_boot image...")"
     cd "$DLKM_RAMDISK_DIR"
     find . | cpio --quiet -o -H newc -R root:root | lz4 -9cl > "../ramdisk_dlkm.lz4"
-    cd "../ramdisk_platform"
-    find . | cpio --quiet -o -H newc -R root:root | lz4 -9cl > "../ramdisk_platform.lz4"
-    cd ".."
-    echo "buildtime_bootconfig=enable" > bootconfig
 
-    "$MKBOOTIMG" --header_version 4 \
-        --vendor_boot "$OUT_VENDORBOOTIMG" \
-        --vendor_bootconfig "$(pwd)/bootconfig" \
-        --dtb "$OUT_DTBIMAGE" \
-        --vendor_ramdisk "$(pwd)/ramdisk_platform.lz4" \
-        --ramdisk_type dlkm \
-        --ramdisk_name dlkm \
-        --vendor_ramdisk_fragment "$(pwd)/ramdisk_dlkm.lz4" \
-        --os_version 15.0.0 \
-        --os_patch_level "$MONTH" || exit 1
+    clang -std=c11 -D_FILE_OFFSET_BITS=64 -Os \
+        -o "$TMPDIR/vendor_boot_repack_host" \
+        "$KDIR/kernel_build/scripts/vendor_boot_repack.c" || exit 1
+    "$TMPDIR/vendor_boot_repack_host" "$PREBUILT_VENDOR_BOOT" \
+        "$TMPDIR/ramdisk_dlkm.lz4" "$OUT_DTBIMAGE" \
+        "$OUT_VENDORBOOTIMG" || exit 1
 
     cd "$KDIR"
     echo -e "$(log_info "Done!")"
