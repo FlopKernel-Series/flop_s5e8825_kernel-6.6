@@ -1,0 +1,153 @@
+/*
+ * Copyright (c) 2022, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ */
+
+#if 1
+&s_l27_reg {
+	regulator-name = "VDD_BTP_3P3";
+};
+#endif
+
+#if 0
+&${fps_ldo_vdd_3p3_parent} {
+	btp_ldo: btp-ldo {
+		samsung,pins = SEC_GPIO(${fps_ldo_vdd_3p3});
+		samsung,pin-function = <1>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <0>;
+		samsung,pin-con-pdn = <3>;
+		samsung,pin-pud-pdn = <0>;
+	};
+};
+#endif
+
+&pinctrl_0 {
+	btp_irq: btp-irq {
+		samsung,pins = SEC_GPIO(AP,gpa0,gpa0,1);
+		samsung,pin-function = <0xf>;
+		samsung,pin-pud = <0>;
+		samsung,pin-drv = <3>;
+	};
+
+	btp_irq_sleep: btp-irq-sleep {
+		samsung,pins = SEC_GPIO(AP,gpa0,gpa0,1);
+		samsung,pin-function = <0>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <3>;
+	};
+};
+
+&pinctrl_0 {
+	btp_rst: btp-rst {
+		samsung,pins = SEC_GPIO(AP,gpc3,gpc3,0);
+		samsung,pin-function = <1>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <0>;
+		samsung,pin-con-pdn = <3>;
+		samsung,pin-pud-pdn = <0>;
+	};
+};
+
+&pinctrl_6 {
+	spi_fp_bus_inactive: spi-fp-bus-inactive {
+		samsung,pins = SEC_GPIO(AP,gpp0,gpp0,7), SEC_GPIO(AP,gpp0,gpp0,4), SEC_GPIO(AP,gpp0,gpp0,5);
+		samsung,pin-function = <1>;
+		samsung,pin-pud = <0>;
+		samsung,pin-drv = <2>;
+		samsung,pin-val = <0>;
+	};
+
+	spi_fp_miso_inactive: spi-fp-miso-inactive {
+		samsung,pins = SEC_GPIO(AP,gpp0,gpp0,6);
+		samsung,pin-function = <0>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <2>;
+	};
+
+	spi_fp_clk: spi-fp-clk {
+		samsung,pins = SEC_GPIO(AP,gpp0,gpp0,4);
+		samsung,pin-function = <2>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <2>;
+	};
+
+	spi_fp_cs: spi-fp-cs {
+		samsung,pins = SEC_GPIO(AP,gpp0,gpp0,7);
+		samsung,pin-function = <2>;
+		samsung,pin-pud = <3>;
+		samsung,pin-drv = <2>;
+	};
+
+	spi_fp_miso: spi-fp-miso {
+		samsung,pins = SEC_GPIO(AP,gpp0,gpp0,6);
+		samsung,pin-function = <2>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <2>;
+	};
+
+	spi_fp_mosi: spi-fp-mosi {
+		samsung,pins = SEC_GPIO(AP,gpp0,gpp0,5);
+		samsung,pin-function = <2>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <2>;
+	};
+};
+
+#if defined(CONFIG_SEC_FACTORY) || !1
+&spi_1 {
+	status = "okay";
+	pinctrl-names = "";
+	dma-mode;
+#else
+&smd {
+#endif
+	etspi-spi@0 {
+		compatible = "etspi,ec6xx";
+		reg = <0>;
+		spi-max-frequency = <12500000>;
+#if !defined(CONFIG_SEC_FACTORY) && 1
+		clocks = <&clock GATE_USI01_USI_QCH>, <&clock DOUT_DIV_CLK_PERI_USI01_USI>;
+		clock-names = "gate_spi_clk", "ipclk_spi";
+#endif
+
+		pinctrl-names = "default", "pins_poweron", "pins_poweroff"
+				, "pins_poweron_tz", "pins_poweroff_tz";
+#if 0
+		pinctrl-0 = <&btp_irq_sleep &btp_rst &btp_ldo>;
+#else
+		pinctrl-0 = <&btp_irq_sleep &btp_rst>;
+#endif
+		pinctrl-1 = <&btp_irq &spi_fp_clk &spi_fp_cs &spi_fp_miso &spi_fp_mosi>;
+		pinctrl-2 = <&btp_irq_sleep &spi_fp_bus_inactive &spi_fp_miso_inactive>;
+		pinctrl-3 = <&btp_irq>;
+		pinctrl-4 = <&btp_irq_sleep>;
+
+		gpio-controller;
+		#gpio-cells = <2>;
+
+		etspi-sleepPin = <SEC_GPIO_REF(AP,gpc3,gpc3,0) 0>;
+		etspi-drdyPin = <SEC_GPIO_REF(AP,gpa0,gpa0,1) 0x00>;
+#if 0
+		etspi-ldoPin = <SEC_GPIO_REF(${fps_ldo_vdd_3p3}) 0>;
+#endif
+#if 1
+		etspi-regulator = "VDD_BTP_3P3";
+		VDD_BTP_3P3-supply = <&s_l27_reg>;
+#endif
+		etspi-chipid = "EC618";
+		etspi-modelinfo = "A266";
+		etspi-orient = <0>;
+		etspi-position = "53.560,14.160";
+
+		controller-data {
+			cs-gpio = <SEC_GPIO_REF(AP,gpp0,gpp0,7) 0>;
+			samsung,spi-feedback-delay = <0>;
+			samsung,spi-chip-select-mode = <0>;
+		};
+	};
+};
+

@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Samsung CP interface device tree source
+ *
+ * Copyright (c) 2019-2022 Samsung Electronics Co., Ltd.
+ *             http://www.samsung.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+
+&cp_rmem {
+	reg = <0x8 0x80000000 0x10500000>;
+};
+
+&cp_rmem1 {
+    status = "disabled";
+};
+
+&cpif {
+	pktproc_cp_base = <0x0 0x4CF00000>;
+	pktproc_dl_buff_rgn_size = <0x00C00000>;
+	pktproc_ul_buff_rgn_offset = <0x00E00000>;
+};
+
+&cp_shmem {
+	memory-region = <&cp_rmem>;
+    /delete-node/ regions;
+	regions {
+		cp {
+			region,name = "CP";
+			region,index = <SHMEM_CP>;
+			region,rmem = <0>;
+			region,offset = <0x00000000>;
+			region,size = <0x0BF00000>;
+			region,cached = <0>;
+		};
+        vss {
+            region,name = "VSS";
+            region,index = <SHMEM_VSS>;
+            region,rmem = <0>;
+            region,offset = <0x0BF00000>;
+            region,size = <0x00800000>;
+            region,cached = <0>;
+        };
+        ipc {
+            region,name = "IPC";
+            region,index = <SHMEM_IPC>;
+            region,rmem = <0>;
+            region,offset = <0x0C700000>;
+            region,size = <0x00800000>;
+            region,cached = <0>;
+        };
+        pktproc {
+            region,name = "PKTPROC";
+            region,index = <SHMEM_PKTPROC>;
+            region,rmem = <0>;
+            region,offset = <0x0CF00000>;
+            region,size = <0x00E00000>;
+            /* Cached information is defined by pktproc itself */
+        };
+        pktproc_ul {
+            region,name = "PKTPROC_UL";
+            region,index = <SHMEM_PKTPROC_UL>;
+            region,rmem = <0>;
+            region,offset = <0x0DD00000>;
+            region,size = <0x00400000>;
+            region,cached = <0>;
+        };
+        ddm {
+            region,name = "DDM";
+            region,index = <SHMEM_DDM>;
+            region,rmem = <0>;
+            region,offset = <0x0E100000>;
+            region,size = <0x00400000>;
+            /* Cached information is defined by ddm itself */
+        };
+        btl {
+            region,name = "BTL";
+            region,index = <SHMEM_BTL>;
+            region,rmem = <0>;
+            region,offset = <0x0E500000>;
+            region,size = <0x02000000>;
+            region,cached = <0>;
+        };
+	};
+};
+
