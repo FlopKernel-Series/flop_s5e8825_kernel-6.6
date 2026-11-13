@@ -295,4 +295,49 @@ source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/samsung/exynos/slif/Kconfig"
 # source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/codecs/Kconfig"
 # source "$(KCONFIG_EXT_SOC_PREFIX)sound/soc/samsung/exynos/codecs/Kconfig"
 
+# SPDX-License-Identifier: GPL-2.0-only
 
+config SND_SOC_SAMSUNG_EXYNOS_AW882XX
+	tristate "AW882XX amp support on exynos"
+	select SND_SMARTPA_AW882XX
+	select SEC_SND_SYNCHRONIZED_IPC_AW
+
+config SND_SOC_SAMSUNG_EXYNOS_TFA9878_MX
+	tristate "TFA9878 amp support on exynos"
+	select SND_SOC_TFA9878
+	select FW_LOADER_USER_HELPER
+	select FW_LOADER_USER_HELPER_FALLBACK
+	select SEC_SND_SYNCHRONIZED_IPC_GDX
+
+config SND_SOC_SAMSUNG_EXYNOS8825_AUDIO
+	tristate "Sound card support on exynos8825 SEP"
+	select SND_SOC_SAMSUNG_ABOX
+	select SND_SOC_SAMSUNG_MAILBOX
+	select SND_SOC_SAMSUNG_VTS
+	select SND_SOC_SAMSUNG_SLIF
+
+config SND_SOC_SAMSUNG_EXYNOS8825_RT5665
+	tristate "Sound card with RT5665 codec support on exynos8825 SEP"
+	select SND_SOC_SAMSUNG_ABOX
+	select SND_SOC_SAMSUNG_MAILBOX
+	select SND_SOC_SAMSUNG_VTS
+	select SND_SOC_SAMSUNG_SLIF
+	select SND_SOC_RT5665_MX
+
+config SND_SOC_SAMSUNG_EXYNOS8825_RT5665_DBMDX
+	tristate "Sound card with RT5665 codec and DBMDX support on exynos8825 SEP"
+	select SND_SOC_SAMSUNG_ABOX
+	select SND_SOC_RT5665_MX
+
+config SND_SOC_SAMSUNG_EXYNOS8825_RT5691
+	tristate "Sound card with RT5691 codec support on exynos8825 SEP"
+	select SND_SOC_SAMSUNG_ABOX
+	select SND_SOC_SAMSUNG_MAILBOX
+	select SND_SOC_SAMSUNG_VTS
+	select SND_SOC_SAMSUNG_SLIF
+	select SND_SOC_RT5691_MX
+
+source "sound/soc/samsung/exynos/abox/Kconfig"
+source "sound/soc/samsung/exynos/vts/Kconfig"
+source "sound/soc/samsung/exynos/slif/Kconfig"
+source "sound/soc/codecs/Kconfig"
