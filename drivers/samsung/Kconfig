@@ -1,0 +1,46 @@
+source "drivers/samsung/pm/Kconfig"
+
+source "drivers/samsung/debug/Kconfig"
+
+source "drivers/samsung/factory/Kconfig"
+
+comment "Samsung sysfs Feature"
+config DRV_SAMSUNG
+	tristate "Samsung sec class/sysfs Feature"
+	default n
+	help
+	  Samsung sysfs name 'sec' directory create.
+
+# Copyright (c) 2010-2026 Samsung Electronics Co., Ltd.
+#               http://www.samsung.com/
+#
+# Licensed under GPLv2
+
+config SEC_REBOOT
+	tristate "Enable Samsung reboot features"
+	default n
+	help
+	  Samsung TN reboot extension Feature. Do additional work when reboot.
+
+config SEC_KEY_NOTIFIER
+	tristate "Enable Samsung key event notifier"
+	default n
+	help
+	  Samsung Key input event notifier
+
+config SEC_KN_WATCH
+	bool "Change keys to support watch in event notifier"
+	default n
+	help
+		Enable this option for watch devices.
+		This will change the hold, primary, and secondary key to
+		support crash key and hard reset hook in watch devices.
+
+		          |     Phone      |     Watch
+		------------------------------------------
+		Hold      | KEY_VOLUMEDOWN | KEY_APPSELECT
+		------------------------------------------
+		Primary   | KEY_POWER      | KEY_APPSELECT
+		------------------------------------------
+		Secondary | KEY_VOLUMEUP   | KEY_POWER
+		------------------------------------------
