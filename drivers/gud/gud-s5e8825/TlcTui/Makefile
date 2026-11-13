@@ -38,4 +38,4 @@ ccflags-y += -I$(GUD_ROOT_FOLDER)/TlcTui/inc \
              -I$(GUD_ROOT_FOLDER)/TlcTui/public
 
 # DPU includes (for exynos_drm_tui.h)
-ccflags-y += -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu
+ccflags-y += -I$(srctree)/drivers/dpu

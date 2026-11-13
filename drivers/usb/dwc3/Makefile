@@ -69,8 +69,8 @@ obj-$(CONFIG_USB_DWC3_OCTEON)		+= dwc3-octeon.o
 # and allyesconfig builds.
 ##
 
-USB_HDRS="-I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/dwc3"
-USB_LDRS="-I${ROOT_DIR}/${KERNEL_DIR}/include/linux"
+USB_HDRS="-I$(srctree)/drivers/usb/dwc3"
+USB_LDRS="-I$(srctree)/include/linux"
 
 ifdef CONFIG_USB_DWC3_EXYNOS_MODULE
 subdir-ccflags-y += $(USB_HDRS)
@@ -94,4 +94,4 @@ obj-$(CONFIG_EXYNOS_USB_KUNIT_TEST) 	+= test/
 # USB Functions
 obj-$(CONFIG_SEC_USB_HOOK) += sec_usb_hook.o
 
-subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/dwc3
+subdir-ccflags-y += -I$(srctree)/drivers/usb/dwc3

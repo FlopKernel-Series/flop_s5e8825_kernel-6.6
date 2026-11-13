@@ -2,7 +2,7 @@
 # Makefile for MCD Panel Samsung Driver
 
 # Include paths for DPU headers
-DPU_INCLUDE_PATH := ${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu
+DPU_INCLUDE_PATH := $(srctree)/drivers/dpu
 
 ccflags-y := -I$(DPU_INCLUDE_PATH) \
              -I$(DPU_INCLUDE_PATH)/include \
@@ -11,8 +11,8 @@ ccflags-y := -I$(DPU_INCLUDE_PATH) \
              -I$(DPU_INCLUDE_PATH)/mcd_cal \
              -I$(DPU_INCLUDE_PATH)/exynos_p2 \
              -I$(DPU_INCLUDE_PATH)/exynos_p2/cal_py \
-             -I${ROOT_DIR}/exynos/device/erd/erd8825/drivers/gpu/drm/samsung/panel \
-             -I${ROOT_DIR}/exynos/device/erd/erd8825/include
+             -I$(srctree)/drivers/gpu/drm/samsung/panel \
+             -I$(srctree)/include
 
 subdir-ccflags-y := $(ccflags-y)
 

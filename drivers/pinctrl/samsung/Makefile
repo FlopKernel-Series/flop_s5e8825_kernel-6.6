@@ -11,4 +11,4 @@ pinctrl-samsung-ext-$(CONFIG_PINCTRL_EXYNOS_EXT)	+= pinctrl-exynos.o
 pinctrl-samsung-ext-$(CONFIG_PINCTRL_EXYNOS_EXT_ARM64)	+= pinctrl-exynos-arm64.o
 obj-$(CONFIG_PINCTRL_SEC_GPIO_DVS)	+= secgpio_dvs.o
 
-subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/pinctrl
+subdir-ccflags-y += -I$(srctree)/drivers/pinctrl

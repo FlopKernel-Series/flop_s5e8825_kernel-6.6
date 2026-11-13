@@ -13,7 +13,7 @@ tuihw-objs += stui_core.o
 tuihw-objs += stui_log.o
 
 ccflags-y += -I$(srctree)/$(src)/platforms
-ccflags-y += -I$(ROOT_DIR)/$(EXYNOS_SOC_DIR)/drivers
+ccflags-y += -I$(srctree)/drivers
 tuihw-objs += platforms/stui_hal_display.o
 tuihw-objs += platforms/stui_hal_touch.o
 

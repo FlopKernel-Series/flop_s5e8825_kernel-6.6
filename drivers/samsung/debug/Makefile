@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 
 ccflags-y := -Wformat
-subdir-ccflags-y += -I${ROOT_DIR}/${EXYNOS_SOC_DIR}
-subdir-ccflags-y += -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/include
+subdir-ccflags-y += -I$(srctree)
+subdir-ccflags-y += -I$(srctree)/include
 
 # softdog module
 obj-$(CONFIG_SOFT_WATCHDOG_EXT)		+= softdog.o

@@ -1,4 +1,4 @@
 #
 # Mobicore Configuration
 #
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/gud/gud-s5e8825/Kconfig"
+source "drivers/gud/gud-s5e8825/Kconfig"

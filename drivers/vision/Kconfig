@@ -7,7 +7,7 @@ menuconfig VISION_SUPPORT
 
 if VISION_SUPPORT
 
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/vision/vision-core/Kconfig"
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/vision/npu/Kconfig"
+source "drivers/vision/vision-core/Kconfig"
+source "drivers/vision/npu/Kconfig"
 
 endif # VISION_SUPPORT

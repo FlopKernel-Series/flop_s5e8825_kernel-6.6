@@ -57,7 +57,7 @@ config MALI_IS_FPGA
       This is the default HW backend.
 
 menu "Platform specific options"
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/gpu/arm/exynos/Kconfig"
+source "drivers/gpu/arm/exynos/Kconfig"
 endmenu
 
 config MALI_CSF_SUPPORT
