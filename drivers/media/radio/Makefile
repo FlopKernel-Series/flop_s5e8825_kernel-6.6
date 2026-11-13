@@ -39,3 +39,5 @@ obj-$(CONFIG_USB_KEENE) += radio-keene.o
 obj-$(CONFIG_USB_MA901) += radio-ma901.o
 obj-$(CONFIG_USB_MR800) += radio-mr800.o
 obj-$(CONFIG_USB_RAREMONO) += radio-raremono.o
+
+obj-$(CONFIG_RADIO_S5E8825) += s610/

@@ -24,3 +24,9 @@ obj-$(CONFIG_EXYNOS_ARM64_COMMON_CLK)	+= clk-exynosautov9.o
 obj-$(CONFIG_S3C64XX_COMMON_CLK)	+= clk-s3c64xx.o
 obj-$(CONFIG_S5PV210_COMMON_CLK)	+= clk-s5pv210.o clk-s5pv210-audss.o
 obj-$(CONFIG_TESLA_FSD_COMMON_CLK)	+= clk-fsd.o
+
+# SPDX-License-Identifier: GPL-2.0-only
+
+obj-$(CONFIG_COMPOSITE_CLK_SAMSUNG)     += clk_exynos.o
+clk_exynos-$(CONFIG_COMPOSITE_CLK_SAMSUNG)      += composite.o
+clk_exynos-$(CONFIG_SOC_S5E8825)      += clk-s5e8825.o

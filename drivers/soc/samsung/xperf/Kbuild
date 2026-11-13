@@ -1,0 +1,5 @@
+# Exynos Performance Drivers
+subdir-ccflags-y += -I$(KERNEL_SRC)
+
+obj-$(CONFIG_EXYNOS_PERF)	+= xperf.o
+xperf-y	+= main.o core.o prof.o memcpy.o gmc.o pago.o

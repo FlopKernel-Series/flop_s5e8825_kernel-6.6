@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+obj-$(CONFIG_SAMSUNG_PDMA)             += samsung-pdma.o
+samsung-pdma-objs      += samsung-pl330.o samsung-pdma-interface.o

@@ -708,4 +708,16 @@ config PWM_XILINX
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-xilinx.
 
+
+# SPDX-License-Identifier: GPL-2.0-only
+config PWM_EXYNOS
+	tristate "Samsung PWM support"
+	depends on PLAT_SAMSUNG || ARCH_EXYNOS || COMPILE_TEST
+	depends on HAS_IOMEM
+	help
+	  Generic PWM framework driver for Samsung.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-exynos.
+
 endif

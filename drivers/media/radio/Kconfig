@@ -506,4 +506,11 @@ config RADIO_ZOLTRIX_PORT
 
 endif # V4L_RADIO_ISA_DRIVERS
 
+
+config RADIO_S5E8825
+	tristate "SAMSUNG S5E8825 FM Radio"
+	depends on VIDEO_DEV
+
+source "drivers/media/radio/s610/Kconfig"
+
 endif # RADIO_ADAPTERS

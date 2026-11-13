@@ -79,3 +79,16 @@ obj-y				+= ti/
 obj-$(CONFIG_PINCTRL_UNIPHIER)	+= uniphier/
 obj-$(CONFIG_PINCTRL_VISCONTI)	+= visconti/
 obj-$(CONFIG_ARCH_VT8500)	+= vt8500/
+
+# SPDX-License-Identifier: GPL-2.0
+# SAMSUNG pmic pinmux support
+
+obj-$(CONFIG_PINCTRL_S2P) += s2p_pinctrl.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPS28) += s2mps28_pinctrl.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPM07_9945) += s2mpm07_pinctrl_9945.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2SE911) += s2se911_pinctrl.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPA05) += s2mpa05_pinctrl.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPU15) += s2mpu15_pinctrl.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPU16) += s2mpu16_pinctrl.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPU13) += pinctrl-samsung-s2mpu13.o
+obj-$(CONFIG_PINCTRL_SAMSUNG_S2MPU14) += pinctrl-samsung-s2mpu14.o
