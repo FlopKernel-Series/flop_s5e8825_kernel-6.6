@@ -1,0 +1,45 @@
+&contexthub_0 {
+	multi-os = "disabled";
+};
+
+/ {
+	fragment@model {
+		target-path = "/";
+		__overlay__ {
+			shub {
+				compatible = "shub";
+			};
+		};
+	};
+};
+
+/* /home/dpi/qb5_8814/workspace/P4_1716/kernel/kmodule/sensorhub/lsi/s5e8825/dts/sensorhub_s5e8825.a26xs.dtsi */
+/ {
+	fragment@model {
+		target-path = "/";
+		__overlay__ {
+			shub {
+				acc-icm42632m-position = <0>;
+				mag-ak09918c-position = <6>;
+				mag-ak09918c-array = /bits/ 8 <0 0 0 0 0 0 0 0 0
+							0 0 0 0 0 0 0 0 0
+							0 0 0 0 0 0 0 0 0>;
+				light-position = /bits/ 32 <44 623 10 265 3 0>;
+				brightness-array-len = <11>;
+				brightness-array = /bits/ 32 <19 48 54 58 63 67 70 73 75 77 100>;
+			};
+		};
+	};
+};
+/* /home/dpi/qb5_8814/workspace/P4_1716/kernel/kmodule/sensorhub/lsi/s5e8825/dts/sensorhub_s5e8825.a26xs.04.dtsi */
+/ {
+	fragment@model {
+		target-path = "/";
+		__overlay__ {
+			shub {
+				acc-icm42632m-position = <1>;
+				mag-ak09918c-array = /bits/ 8 <90 97 240 13 202 130 1 130 204 55 239 99 240 28 253 232 4 102 14 193 185 4 125 6 10 77 157>;
+			};
+		};
+	};
+};

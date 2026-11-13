@@ -1,0 +1,89 @@
+/*
+ * SAMSUNG S5E8825 Power Management device tree source
+ *
+ * Copyright (c) 2026 Samsung Electronics Co., Ltd.
+ *		http://www.samsung.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/ {
+	fragment@model {
+		target-path = "/";
+		__overlay__ {
+			sec_thermistor_0: sec_thermistor@1 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-ap-thermistor";
+				id = <0>;
+
+				adc_array = <278 326 383 450 529 623 738 870 1022 1178
+					1358 1565 1785 2026 2266 2507 2733 2949 3151 3330
+					3481 3612 3726>;
+				temp_array = <900 850 800 750 700 650 600 550 500 450
+					400 350 300 250 200 150 100 50 0 (-50)
+					(-100) (-150) (-200)>;
+
+				io-channels = <&s2mpu13_gpadc 1>;
+				io-channel-names = "adc-ap-temp";
+				io-channel-ranges;
+			};
+
+			sec_thermistor_1: sec_thermistor@4 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-lp-thermistor";
+				id = <1>;
+
+				adc_array = <286 334 391 457 537 631 746 878 1032 1188
+					1368 1576 1797 2035 2276 2516 2743 2958 3159 3338
+					3487 3617 3730>;
+				temp_array = <900 850 800 750 700 650 600 550 500 450
+					400 350 300 250 200 150 100 50 0 (-50)
+					(-100) (-150) (-200)>;
+
+				io-channels = <&s2mpu13_gpadc 4>;
+				io-channel-names = "adc-lp-temp";
+				io-channel-ranges;
+			};
+
+			sec_thermistor_2: sec_thermistor@5 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-pa-thermistor";
+				id = <2>;
+
+				adc_array = <364 478 609 759 939 1139 1355 1581 1822 2061
+					2301 2522 2730 2911 3068 3221 3353 3469 3563 3643
+					3710 3767 3815>;
+				temp_array = <(-200) (-150) (-100) (-50) 0 50 100 150 200 250
+					300 350 400 450 500 550 600 650 700 750
+					800 850 900>;
+
+				io-channels = <&s2mpu13_gpadc 5>;
+				io-channel-names = "adc-pa-temp";
+				io-channel-ranges;
+			};
+
+			sec_thermistor_3: sec_thermistor@6 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-wf-thermistor";
+				id = <3>;
+
+				adc_array = <283 331 387 454 535 628 743 875 1028 1184
+					1364 1571 1792 2032 2272 2512  2739 2955 3156 3336
+					3485 3615 3728>;
+				temp_array = <900 850 800 750 700 650 600 550 500 450
+					400 350 300 250 200 150 100 50 0 (-50)
+					(-100) (-150) (-200)>;
+
+				io-channels = <&s2mpu13_gpadc 6>;
+				io-channel-names = "adc-wf-temp";
+				io-channel-ranges;
+			};
+		}; /* end of __overlay__ */
+	}; /* end of fragment */
+}; /* end of root */
