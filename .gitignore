@@ -177,3 +177,5 @@ sphinx_*/
 /kernel_build/images
 !/kernel_build/vboot_platform/vendor/firmware/*.bin
 kernel_build/.deps
+log.txt
+modules.load.gen
