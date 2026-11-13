@@ -544,7 +544,7 @@ CONFIG_ARM64_CONTPTE=y
 #
 # Boot options
 #
-CONFIG_CMDLINE="console=ttynull stack_depot_disable=on cgroup_disable=pressure kasan.stacktrace=off kvm-arm.mode=protected bootconfig ioremap_guard"
+CONFIG_CMDLINE="console=ttynull stack_depot_disable=on cgroup_disable=pressure bootconfig"
 # CONFIG_CMDLINE_FROM_BOOTLOADER is not set
 CONFIG_CMDLINE_EXTEND=y
 # CONFIG_CMDLINE_FORCE is not set
@@ -671,7 +671,7 @@ CONFIG_HAVE_KVM_VCPU_RUN_PID_CHANGE=y
 CONFIG_KVM_XFER_TO_GUEST_WORK=y
 CONFIG_KVM_GENERIC_HARDWARE_ENABLING=y
 CONFIG_VIRTUALIZATION=y
-CONFIG_KVM=y
+# CONFIG_KVM is not set
 # CONFIG_NVHE_EL2_DEBUG is not set
 CONFIG_PKVM_MODULE_PATH=""
 CONFIG_PTDUMP_STAGE2_DEBUGFS=y
@@ -3288,7 +3288,8 @@ CONFIG_PTP_1588_CLOCK_OPTIONAL=m
 #
 # Enable PHYLIB and NETWORK_PHY_TIMESTAMPING to see the additional clocks.
 #
-CONFIG_PTP_1588_CLOCK_KVM=m
+# CONFIG_PTP_1588_CLOCK_KVM is not set
+
 # CONFIG_PTP_1588_CLOCK_IDT82P33 is not set
 # CONFIG_PTP_1588_CLOCK_IDTCM is not set
 # CONFIG_PTP_1588_CLOCK_MOCK is not set
