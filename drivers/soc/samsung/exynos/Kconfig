@@ -1,3 +1,9 @@
+config SOC_S5E8825
+	bool "Samsung S5E8825"
+	select ARCH_EXYNOS
+	help
+	  Support Samsung SOC S5E8825.
+
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Samsung SoC drivers

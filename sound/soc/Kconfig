@@ -121,5 +121,16 @@ source "sound/soc/codecs/Kconfig"
 # generic frame-work
 source "sound/soc/generic/Kconfig"
 
-endif	# SND_SOC
 
+source "sound/soc/samsung/exynos/Kconfig"
+
+
+source "sound/soc/codecs/aw882xx/Kconfig"
+
+
+source "sound/soc/codecs/tfa9878/Kconfig"
+
+
+source "sound/soc/codecs/dbmdx/Kconfig"
+
+endif	# SND_SOC
