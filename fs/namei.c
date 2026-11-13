@@ -42,6 +42,10 @@
 #include <linux/init_task.h>
 #include <linux/uaccess.h>
 
+#ifdef CONFIG_SECURITY_DEFEX
+#include <linux/defex.h>
+#endif
+
 #include "internal.h"
 #include "mount.h"
 
@@ -3790,12 +3794,37 @@ static struct file *path_openat(struct nameidata *nd,
 		error = do_o_path(nd, flags, file);
 	} else {
 		const char *s = path_init(nd, flags);
+#ifdef CONFIG_SECURITY_DEFEX
+		int retry_nofollow = 0;
+		int first_symlink_checked = 0;
+#endif
 		while (!(error = link_path_walk(s, nd)) &&
-		       (s = open_last_lookups(nd, file, op)) != NULL)
-			;
+		       (s = open_last_lookups(nd, file, op)) != NULL) {
+#ifdef CONFIG_SECURITY_DEFEX
+			if (first_symlink_checked || IS_ERR(s))
+				continue;
+
+			first_symlink_checked = 1;
+			if (op->open_flag & (O_CREAT | O_TRUNC | O_WRONLY | O_RDWR)) {
+				if (nd->flags & LOOKUP_RCU) {
+					retry_nofollow = 1;
+					continue;
+				}
+
+				if (nd->depth > 0 && task_defex_link_protection(current, -__NR_openat, &nd->stack[nd->depth - 1].link, 0, NULL, flags)) {
+					error = -EPERM;
+					break;
+				}
+			}
+#endif
+		}
 		if (!error)
 			error = do_open(nd, file, op);
 		terminate_walk(nd);
+#ifdef CONFIG_SECURITY_DEFEX
+		if (first_symlink_checked && retry_nofollow)
+			nd->state |= DEFEX_RETRY_NOFOLLOW;
+#endif
 	}
 	if (likely(!error)) {
 		if (likely(file->f_mode & FMODE_OPENED))
@@ -3826,6 +3855,24 @@ struct file *do_filp_open(int dfd, struct filename *pathname,
 		filp = path_openat(&nd, op, flags);
 	if (unlikely(filp == ERR_PTR(-ESTALE)))
 		filp = path_openat(&nd, op, flags | LOOKUP_REVAL);
+#ifdef CONFIG_SECURITY_DEFEX
+	if (!IS_ERR_OR_NULL(filp)) {
+		if (nd.state & DEFEX_RETRY_NOFOLLOW) {
+			if (task_defex_link_protection(current, -__NR_openat, NULL, dfd, pathname->name, op->open_flag)) {
+				fput(filp);
+				filp = ERR_PTR(-EPERM);
+			}
+		} else {
+			struct inode *inode = file_inode(filp);
+			if (inode && READ_ONCE(inode->i_nlink) > 1 && (op->open_flag & (O_CREAT | O_TRUNC | O_WRONLY | O_RDWR))) {
+				if (task_defex_link_protection(current, -__NR_openat, &filp->f_path , 0, NULL, op->open_flag)) {
+					fput(filp);
+					filp = ERR_PTR(-EPERM);
+				}
+			}
+		}
+	}
+#endif
 	restore_nameidata();
 	return filp;
 }
@@ -4261,6 +4308,10 @@ retry:
 	if (error)
 		goto exit4;
 	error = vfs_rmdir(mnt_idmap(path.mnt), path.dentry->d_inode, dentry);
+#ifdef CONFIG_PROC_DLOG
+	if (!error)
+		dlog_hook_rmdir(dentry, &path);
+#endif
 exit4:
 	dput(dentry);
 exit3:
@@ -4398,6 +4449,10 @@ retry_deleg:
 			goto exit3;
 		error = vfs_unlink(mnt_idmap(path.mnt), path.dentry->d_inode,
 				   dentry, &delegated_inode);
+#ifdef CONFIG_PROC_DLOG
+		if (!error)
+			dlog_hook(dentry, inode, &path);
+#endif
 exit3:
 		dput(dentry);
 	}
@@ -4503,9 +4558,15 @@ retry:
 		goto out_putnames;
 
 	error = security_path_symlink(&path, dentry, from->name);
-	if (!error)
-		error = vfs_symlink(mnt_idmap(path.mnt), path.dentry->d_inode,
+	if (!error) {
+#ifdef CONFIG_SECURITY_DEFEX
+		if (task_defex_link_protection(current, -__NR_symlinkat, &path, 0, from->name, 0))
+			error = -EPERM;
+		if (!error)
+#endif
+			error = vfs_symlink(mnt_idmap(path.mnt), path.dentry->d_inode,
 				    dentry, from->name);
+}
 	done_path_create(&path, dentry);
 	if (retry_estale(error, lookup_flags)) {
 		lookup_flags |= LOOKUP_REVAL;
@@ -4673,6 +4734,12 @@ retry:
 	error = security_path_link(old_path.dentry, &new_path, new_dentry);
 	if (error)
 		goto out_dput;
+#ifdef CONFIG_SECURITY_DEFEX
+	if (task_defex_link_protection(current, -__NR_linkat, &old_path, 0, NULL, 0)) {
+		error = -EPERM;
+		goto out_dput;
+	}
+#endif
 	error = vfs_link(old_path.dentry, idmap, new_path.dentry->d_inode,
 			 new_dentry, &delegated_inode);
 out_dput:

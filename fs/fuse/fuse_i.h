@@ -36,6 +36,12 @@
 #include <linux/user_namespace.h>
 #include <linux/statfs.h>
 
+#ifdef CONFIG_FUSE_SUPPORT_STLOG
+#include <linux/fslog.h>
+#else
+#define ST_LOG(fmt, ...)
+#endif
+
 #define FUSE_SUPER_MAGIC 0x65735546
 
 /** Default max number of pages that can be used in a single read request */
@@ -481,6 +487,24 @@ struct fuse_req {
 	struct fuse_mount *fm;
 };
 
+#ifdef CONFIG_FUSE_SEC
+struct fuse_sec_req {
+	struct fuse_req req;
+
+#ifdef CONFIG_FUSE_PERF
+	ktime_t dispatch_time;
+#endif
+
+#ifdef CONFIG_FUSE_INFLIGHT
+	/** When (in jiffies) the request was created */
+	unsigned long create_time;
+
+	/** fuse worker thread who takes this request */
+	pid_t processed_by;
+#endif
+};
+#endif
+
 struct fuse_iqueue;
 
 /**
@@ -586,6 +610,16 @@ struct fuse_dev {
 	struct list_head entry;
 };
 
+#ifdef CONFIG_FUSE_SEC
+struct fuse_sec_dev {
+	struct fuse_dev fud;
+
+#ifdef CONFIG_FUSE_INFLIGHT
+	struct fuse_inflight_info *fi_processing;
+#endif
+};
+#endif
+
 enum fuse_dax_mode {
 	FUSE_DAX_INODE_DEFAULT,	/* default */
 	FUSE_DAX_ALWAYS,	/* "-o dax=always" */
@@ -629,6 +663,16 @@ struct fuse_fs_context {
 	/* fuse_dev pointer to fill in, should contain NULL on entry */
 	void **fudptr;
 };
+
+#ifdef CONFIG_FUSE_SEC
+struct fuse_sec_fs_context {
+	struct fuse_fs_context ctx;
+
+#ifdef CONFIG_FUSE_PERF
+	const char *perf_node_name;
+#endif
+};
+#endif
 
 struct fuse_sync_bucket {
 	/* count is a possible scalability bottleneck */
@@ -966,6 +1010,28 @@ struct fuse_conn {
 	/** Protects passthrough_req */
 	spinlock_t passthrough_req_lock;
 };
+
+#ifdef CONFIG_FUSE_SEC
+struct fuse_sec_conn {
+	struct fuse_conn fc;
+
+	unsigned int fuse_sec_fc_id;
+
+#ifdef CONFIG_FUSE_WATCHDOG
+	struct task_struct *watchdog;
+#endif
+
+#ifdef CONFIG_FUSE_PERF
+	struct fuse_perf_struct *perf_struct;
+#endif
+
+#ifdef CONFIG_FUSE_INFLIGHT
+	struct fuse_inflight_info *fi_pending;
+	struct fuse_inflight_info *fi_bg;
+	atomic_t fi_pq_id;
+#endif
+};
+#endif
 
 /*
  * Represents a mounted filesystem, potentially a submount.
@@ -2122,5 +2188,106 @@ static inline int fuse_bpf_run(struct bpf_prog *prog, struct fuse_bpf_args *fba)
 })
 
 #endif /* CONFIG_FUSE_BPF */
+
+#ifdef CONFIG_FUSE_FREEZABLE_WAIT
+#define fuse_wait_event(wq, condition)					\
+	wait_event_state(wq, condition, (TASK_UNINTERRUPTIBLE|TASK_FREEZABLE))
+
+#define fuse_wait_event_killable(wq, condition)				\
+	wait_event_state(wq, condition, (TASK_KILLABLE|TASK_FREEZABLE))
+
+#define fuse_wait_event_killable_exclusive(wq, condition)		\
+({									\
+	int ___ret = 0;							\
+	might_sleep();							\
+	if (!(condition))						\
+		___ret = ___wait_event(wq, condition,			\
+				(TASK_KILLABLE|TASK_FREEZABLE), 1, 0,	\
+				schedule());				\
+	___ret;								\
+})
+#else /* !CONFIG_FUSE_FREEZABLE_WAIT */
+#define fuse_wait_event				wait_event
+#define fuse_wait_event_killable		wait_event_killable
+#define fuse_wait_event_killable_exclusive	wait_event_killable_exclusive
+#endif /* CONFIG_FUSE_FREEZABLE_WAIT */
+
+#ifdef CONFIG_FUSE_SEC
+
+struct fuse_fs_context *fuse_sec_fs_context_alloc(gfp_t flags);
+void fuse_sec_fs_context_free(struct fuse_fs_context *ctx);
+struct fuse_conn *fuse_sec_conn_alloc(gfp_t flags);
+void fuse_sec_conn_free(struct fuse_conn *fc);
+struct fuse_dev *fuse_sec_dev_alloc(gfp_t flags);
+void fuse_sec_dev_free(struct fuse_dev *fud);
+struct kmem_cache *fuse_sec_req_cache_create(const char *name,
+		unsigned int align,
+		slab_flags_t flags,
+		void (*ctor)(void *));
+struct fuse_req *fuse_sec_req_zalloc(struct kmem_cache *fuse_req_cachep, gfp_t flags);
+void fuse_sec_req_free(struct kmem_cache *fuse_req_cachep, struct fuse_req *req);
+
+#define SEC_FUSE_FS_CONTEXT(ctx_ptr) container_of((ctx_ptr), struct fuse_sec_fs_context, ctx)
+#define SEC_FUSE_CONN(fc_ptr) container_of((fc_ptr), struct fuse_sec_conn, fc)
+#define SEC_FUSE_DEV(fud_ptr) container_of((fud_ptr), struct fuse_sec_dev, fud)
+#define SEC_FUSE_REQ(req_ptr) container_of((req_ptr), struct fuse_sec_req, req)
+
+int fuse_sec_init(void);
+void fuse_sec_cleanup(void);
+void fuse_sec_set_id(struct fuse_conn *fc);
+#else
+static inline int fuse_sec_init(void) { return 0; }
+static inline void fuse_sec_cleanup(void) {}
+static inline void fuse_sec_set_id(struct fuse_conn *fc) {}
+#endif /* CONFIG_FUSE_SEC */
+
+#ifdef CONFIG_FUSE_WATCHDOG
+void fuse_watchdog_start(struct fuse_conn *fc);
+void fuse_watchdog_stop(struct fuse_conn *fc);
+#else
+static inline void fuse_watchdog_start(struct fuse_conn *fc) {}
+static inline void fuse_watchdog_stop(struct fuse_conn *fc) {}
+#endif
+
+#ifdef CONFIG_FUSE_PERF
+void fuse_perf_init(struct fuse_conn *fc, struct fuse_fs_context *ctx);
+void fuse_perf_destroy(struct fuse_conn *fc);
+void fuse_perf_start_hook(struct fuse_req *req);
+void fuse_perf_end_hook(struct fuse_req *req);
+void fuse_perf_check_last_read(struct fuse_conn *fc);
+bool fuse_perf_proc_create(struct proc_dir_entry *parent);
+void fuse_perf_proc_remove(void);
+#else
+static inline void fuse_perf_init(struct fuse_conn *fc, struct fuse_fs_context *ctx) {}
+static inline void fuse_perf_destroy(struct fuse_conn *fc) {}
+static inline void fuse_perf_start_hook(struct fuse_req *req) {}
+static inline void fuse_perf_end_hook(struct fuse_req *req) {}
+static inline void fuse_perf_check_last_read(struct fuse_conn *fc) {}
+static inline bool fuse_perf_proc_create(struct proc_dir_entry *parent) { return true; }
+static inline void fuse_perf_proc_remove(void) {}
+#endif /* CONFIG_FUSE_PERF */
+
+#ifdef CONFIG_FUSE_INFLIGHT
+void fuse_inflight_req_init(struct fuse_req *req);
+void fuse_inflight_req_set(struct fuse_req *req, pid_t pid);
+int fuse_inflight_create_node_on_mount(struct fuse_conn *fc, struct fuse_dev *fud);
+void fuse_inflight_remove_node(struct fuse_conn *fc);
+int fuse_inflight_create_processing_node_on_clone(struct fuse_dev *fud);
+void fuse_inflight_remove_processing_node(struct fuse_dev *fud);
+bool fuse_inflight_proc_create(struct proc_dir_entry *parent);
+void fuse_inflight_proc_remove(void);
+#else
+static inline void fuse_inflight_req_init(struct fuse_req *req) {}
+static inline void fuse_inflight_req_set(struct fuse_req *req, pid_t pid) {}
+static inline int fuse_inflight_create_node_on_mount(struct fuse_conn *fc, struct fuse_dev *fud)
+{
+	return 0;
+}
+static inline void fuse_inflight_remove_node(struct fuse_conn *fc) {}
+static inline int fuse_inflight_create_processing_node_on_clone(struct fuse_dev *fud) { return 0; }
+static inline void fuse_inflight_remove_processing_node(struct fuse_dev *fud) {}
+static inline bool fuse_inflight_proc_create(struct proc_dir_entry *parent) { return true; }
+static inline void fuse_inflight_proc_remove(void) {}
+#endif /* CONFIG_FUSE_INFLIGHT */
 
 #endif /* _FS_FUSE_I_H */

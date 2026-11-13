@@ -22,6 +22,7 @@
 #include <linux/swap.h>
 #include <linux/splice.h>
 #include <linux/sched.h>
+#include <linux/sched/mm.h>
 
 #include <trace/hooks/fuse.h>
 
@@ -51,11 +52,16 @@ static void fuse_request_init(struct fuse_mount *fm, struct fuse_req *req)
 	refcount_set(&req->count, 1);
 	__set_bit(FR_PENDING, &req->flags);
 	req->fm = fm;
+	fuse_inflight_req_init(req);
 }
 
 static struct fuse_req *fuse_request_alloc(struct fuse_mount *fm, gfp_t flags)
 {
+#ifdef CONFIG_FUSE_SEC
+	struct fuse_req *req = fuse_sec_req_zalloc(fuse_req_cachep, flags);
+#else
 	struct fuse_req *req = kmem_cache_zalloc(fuse_req_cachep, flags);
+#endif
 	if (req)
 		fuse_request_init(fm, req);
 
@@ -64,7 +70,11 @@ static struct fuse_req *fuse_request_alloc(struct fuse_mount *fm, gfp_t flags)
 
 static void fuse_request_free(struct fuse_req *req)
 {
+#ifdef CONFIG_FUSE_SEC
+	fuse_sec_req_free(fuse_req_cachep, req);
+#else
 	kmem_cache_free(fuse_req_cachep, req);
+#endif
 }
 
 static void __fuse_get_request(struct fuse_req *req)
@@ -115,7 +125,7 @@ static struct fuse_req *fuse_get_req(struct fuse_mount *fm, bool for_background)
 
 	if (fuse_block_alloc(fc, for_background)) {
 		err = -EINTR;
-		if (wait_event_killable_exclusive(fc->blocked_waitq,
+		if (fuse_wait_event_killable_exclusive(fc->blocked_waitq,
 				!fuse_block_alloc(fc, for_background)))
 			goto out;
 	}
@@ -397,7 +407,7 @@ static void request_wait_answer(struct fuse_req *req)
 
 	if (!test_bit(FR_FORCE, &req->flags)) {
 		/* Only fatal signals may interrupt this */
-		err = wait_event_killable(req->waitq,
+		err = fuse_wait_event_killable(req->waitq,
 					test_bit(FR_FINISHED, &req->flags));
 		if (!err)
 			return;
@@ -418,7 +428,7 @@ static void request_wait_answer(struct fuse_req *req)
 	 * Either request is already in userspace, or it was forced.
 	 * Wait it out.
 	 */
-	wait_event(req->waitq, test_bit(FR_FINISHED, &req->flags));
+	fuse_wait_event(req->waitq, test_bit(FR_FINISHED, &req->flags));
 }
 
 static void __fuse_request_send(struct fuse_req *req)
@@ -1247,6 +1257,9 @@ static ssize_t fuse_dev_do_read(struct fuse_dev *fud, struct file *file,
 			   fc->max_write))
 		return -EINVAL;
 
+	if (!(current->flags & PF_MEMALLOC_NOFS))
+		memalloc_nofs_save();
+
  restart:
 	for (;;) {
 		spin_lock(&fiq->lock);
@@ -1340,6 +1353,10 @@ static ssize_t fuse_dev_do_read(struct fuse_dev *fud, struct file *file,
 	smp_mb__after_atomic();
 	if (test_bit(FR_INTERRUPTED, &req->flags))
 		queue_interrupt(req);
+
+	fuse_perf_start_hook(req);
+	fuse_inflight_req_set(req, current->pid);
+
 	fuse_put_request(req);
 
 	return reqsize;
@@ -1975,6 +1992,8 @@ static ssize_t fuse_dev_do_write(struct fuse_dev *fud,
 		list_del_init(&req->list);
 	spin_unlock(&fpq->lock);
 
+	fuse_perf_end_hook(req);
+
 	fuse_request_end(req);
 out:
 	return err ? err : nbytes;
@@ -2166,6 +2185,9 @@ void fuse_abort_conn(struct fuse_conn *fc)
 {
 	struct fuse_iqueue *fiq = &fc->iq;
 
+	ST_LOG("<%s> dev = %u:%u  fuse abort all requests",
+			__func__, MAJOR(fc->dev), MINOR(fc->dev));
+
 	spin_lock(&fc->lock);
 	if (fc->connected) {
 		struct fuse_dev *fud;
@@ -2231,7 +2253,7 @@ void fuse_wait_aborted(struct fuse_conn *fc)
 {
 	/* matches implicit memory barrier in fuse_drop_waiting() */
 	smp_mb();
-	wait_event(fc->blocked_waitq, atomic_read(&fc->num_waiting) == 0);
+	fuse_wait_event(fc->blocked_waitq, atomic_read(&fc->num_waiting) == 0);
 }
 
 int fuse_dev_release(struct inode *inode, struct file *file)
@@ -2287,6 +2309,12 @@ static int fuse_device_clone(struct fuse_conn *fc, struct file *new)
 
 	new->private_data = fud;
 	atomic_inc(&fc->dev_count);
+
+	/*
+	 * Cannot be called from fuse_dev_alloc_install() because dev id is 0
+	 * during fuse mount
+	 */
+	fuse_inflight_create_processing_node_on_clone(fud);
 
 	return 0;
 }
@@ -2364,9 +2392,13 @@ static struct miscdevice fuse_miscdevice = {
 int __init fuse_dev_init(void)
 {
 	int err = -ENOMEM;
+#ifdef CONFIG_FUSE_SEC
+	fuse_req_cachep = fuse_sec_req_cache_create("fuse_request", 0, 0, NULL);
+#else
 	fuse_req_cachep = kmem_cache_create("fuse_request",
 					    sizeof(struct fuse_req),
 					    0, 0, NULL);
+#endif
 	if (!fuse_req_cachep)
 		goto out;
 
