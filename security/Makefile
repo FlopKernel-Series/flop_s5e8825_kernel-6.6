@@ -27,5 +27,3 @@ obj-$(CONFIG_SECURITY_LANDLOCK)		+= landlock/
 
 # Object integrity file lists
 obj-$(CONFIG_INTEGRITY)			+= integrity/
-# DSMS
-obj-$(CONFIG_SECURITY_DSMS)		+= samsung/dsms/
