@@ -1369,4 +1369,7 @@ config IO_RECORD
 	help
 	  Enable this for IO_RECORD
 
+
+source "mm/sec_mm/Kconfig"
+
 endmenu
