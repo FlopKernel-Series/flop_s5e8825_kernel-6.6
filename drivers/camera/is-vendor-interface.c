@@ -26,7 +26,7 @@
 #include <linux/sm5714.h>
 #endif
 
-#include "camera/is-vendor-interface.h"
+#include "is-vendor-interface.h"
 
 #if IS_ENABLED(CONFIG_DEV_RIL_BRIDGE)
 static int get_cp_adaptive_mipi(void)
