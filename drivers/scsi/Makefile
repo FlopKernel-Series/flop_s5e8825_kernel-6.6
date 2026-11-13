@@ -223,8 +223,8 @@ endif
 # *!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!*!
 
 ifdef CONFIG_UFS_SRPMB
-ccflags-y += -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/ufs/host/${EXYNOS_SOC}
-ccflags-y += -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/ufs/host
+ccflags-y += -I$(srctree)/drivers/ufs/host/s5e8825
+ccflags-y += -I$(srctree)/drivers/ufs/host
 endif
 
 obj-$(CONFIG_UFS_SRPMB)		+= scsi_srpmb.o

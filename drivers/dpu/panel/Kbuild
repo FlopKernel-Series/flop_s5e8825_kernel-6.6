@@ -1,8 +1,8 @@
-subdir-ccflags-y := -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu  	    \
-		    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/include     \
-		    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/cal_common  \
-		    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/exynos_p2   \
-		    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/exynos_p2/cal_py
+subdir-ccflags-y := -I$(srctree)/drivers/dpu  	    \
+		    -I$(srctree)/drivers/dpu/include     \
+		    -I$(srctree)/drivers/dpu/cal_common  \
+		    -I$(srctree)/drivers/dpu/exynos_p2   \
+		    -I$(srctree)/drivers/dpu/exynos_p2/cal_py
 
 obj-$(CONFIG_DRM_PANEL_SAMSUNG_COMMON) += panel-samsung-drv.o
 obj-$(CONFIG_DRM_PANEL_SAMSUNG_S6E3FAB) += panel-samsung-s6e3fab.o

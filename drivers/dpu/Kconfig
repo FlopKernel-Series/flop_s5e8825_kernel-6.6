@@ -122,6 +122,6 @@ config EXYNOS_DRM_BUFFER_SANITY_CHECK
         default n
 
 #source "driver/dpu/panel/Kconfig"
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/dpu/mcd_cal/Kconfig"
+source "drivers/dpu/mcd_cal/Kconfig"
 
 endif

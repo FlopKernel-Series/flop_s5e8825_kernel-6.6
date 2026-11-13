@@ -62,9 +62,9 @@ obj-$(CONFIG_ANDROID_USB_F_ACC)	+= usb_f_acc.o
 
 # SPDX-License-Identifier: GPL-2.0
 
-ccflags-y	:="-I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/gadget"
-ccflags-y	+="-I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/gadget/udc"
-ccflags-y	+="-I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/gadget/function"
+ccflags-y	:="-I$(srctree)/drivers/usb/gadget"
+ccflags-y	+="-I$(srctree)/drivers/usb/gadget/udc"
+ccflags-y	+="-I$(srctree)/drivers/usb/gadget/function"
 
 usb_f_rndis_mp-y		:= f_rndis_mp.o u_ether_mp.o rndis_mp.o
 obj-$(CONFIG_USB_F_RNDIS_MP)	+= usb_f_rndis_mp.o
@@ -80,4 +80,4 @@ obj-$(CONFIG_USB_F_CONN_GADGET) += usb_f_conn_gadget.o
 usb_f_ss_mon_gadget-y             := f_ss_mon_gadget.o
 obj-$(CONFIG_USB_F_SS_MON_GADGET) += usb_f_ss_mon_gadget.o
 
-subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/gadget/function
+subdir-ccflags-y += -I$(srctree)/drivers/usb/gadget/function
