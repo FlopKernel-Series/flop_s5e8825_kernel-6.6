@@ -289,6 +289,6 @@ config EXYNOS_PPMPU_ILLEGAL_ACCESS_PANIC
 	  Kernel panic will occur in case that PPMPU illegal
 	  access is detected.
 
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/soc/samsung/exynos/acpm/Kconfig"
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/soc/samsung/exynos/exynos-el2/Kconfig"
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/soc/samsung/exynos/security/Kconfig"
+source "drivers/soc/samsung/exynos/acpm/Kconfig"
+source "drivers/soc/samsung/exynos/exynos-el2/Kconfig"
+source "drivers/soc/samsung/exynos/security/Kconfig"

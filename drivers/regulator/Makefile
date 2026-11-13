@@ -229,4 +229,4 @@ s2dos05-regulator-$(CONFIG_REGULATOR_S2DOS05)	+= s2dos05.o s2dos05_powermeter.o
 obj-$(CONFIG_REGULATOR_S2DOS07)		+= s2dos07-regulator.o
 
 #ETC
-subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/gpio
+subdir-ccflags-y += -I$(srctree)/drivers/gpio
