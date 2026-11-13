@@ -102,3 +102,11 @@ config TESLA_FSD_COMMON_CLK
 	help
 	  Support for the clock controller present on the Tesla FSD SoC.
 	  Choose Y here only if you build for this SoC.
+
+# SPDX-License-Identifier: GPL-2.0-only
+# Recent Exynos platforms should just select COMMON_CLK_SAMSUNG:
+
+config COMPOSITE_CLK_SAMSUNG
+	tristate "Samsung Exynos clock controller support"
+	select COMMON_CLK_SAMSUNG
+	depends on CAL_IF
