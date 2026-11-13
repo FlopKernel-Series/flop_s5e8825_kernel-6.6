@@ -169,3 +169,11 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# ckbuild
+/kernel_build/tmp
+/kernel_build/*.zip
+/kernel_build/*.tar
+/kernel_build/images
+!/kernel_build/vboot_platform/vendor/firmware/*.bin
+kernel_build/.deps
