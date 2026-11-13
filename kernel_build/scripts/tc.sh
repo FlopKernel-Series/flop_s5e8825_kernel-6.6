@@ -1,6 +1,7 @@
 # Toolchains
 AOSP_LIST="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+/mirror-goog-main-llvm-toolchain-source"
 AOSP_ARCHIVE="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/mirror-goog-main-llvm-toolchain-source"
+AOSP_R510928_URL="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/513791fb7edceb387ab12b9d29a9ccbe01cae193/clang-r510928.tar.gz"
 PC_REPO="https://github.com/kdrag0n/proton-clang"
 LZ_REPO="https://gitlab.com/Jprimero15/lolz_clang.git"
 SL_REPO="http://ftp.twaren.net/Unix/Kernel/tools/llvm/files/"
@@ -16,6 +17,7 @@ GCC64_REPO="https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64
 export TC_DIR="${TC_DIR:-$WP/toolchains}"
 export GCC64_DIR="$TC_DIR/gcc64"
 export AC_DIR="$TC_DIR/aospclang"
+export AC_R510928_DIR="$TC_DIR/aospclang-r510928"
 export PC_DIR="$TC_DIR/protonclang"
 export LZ_DIR="$TC_DIR/lolzclang"
 export SL_DIR="$TC_DIR/slimllvm"
@@ -34,9 +36,9 @@ else
     log_info "Overriding custom toolchain path..."
 fi
 
-# aosp, proton, lolz, slim, greenforce, zyc, rv, custom
+# aosp, aosp-r510928, proton, lolz, slim, greenforce, zyc, rv, custom
 if [ -z "$CLANG_TYPE" ]; then
-    export CLANG_TYPE="aosp"
+    export CLANG_TYPE="aosp-r510928"
 else
     log_info "Overriding default toolchain"
 fi
@@ -114,6 +116,24 @@ get_toolchain() {
                 log_info "Latest AOSP Clang is $CURRENT_CLANG, downloading…"
                 local archive_name="${CURRENT_CLANG}.tar.gz"
                 if ! download_file "${AOSP_ARCHIVE}/${archive_name}" "$TC_DIR" "$archive_name"; then
+                    log_err "Download failed! Aborting..."
+                    exit 1
+                fi
+                if ! extract_tar "$TC_DIR/$archive_name" "$toolchain_dir"; then
+                    log_err "Extraction failed! Aborting..."
+                    exit 1
+                fi
+                mkdir -p "$toolchain_dir/bin"
+                touch "$toolchain_dir/bin/aarch64-linux-gnu-elfedit" && chmod +x "$toolchain_dir/bin/aarch64-linux-gnu-elfedit"
+                touch "$toolchain_dir/bin/arm-linux-gnueabi-elfedit" && chmod +x "$toolchain_dir/bin/arm-linux-gnueabi-elfedit"
+            fi
+            ;;
+        aosp-r510928)
+            toolchain_dir="$AC_R510928_DIR"
+            if [ ! -d "$toolchain_dir" ] || [ ! -f "$toolchain_dir/bin/clang" ]; then
+                log_info "AOSP Clang r510928 not found! Downloading to $toolchain_dir..."
+                local archive_name="clang-r510928.tar.gz"
+                if ! download_file "$AOSP_R510928_URL" "$TC_DIR" "$archive_name"; then
                     log_err "Download failed! Aborting..."
                     exit 1
                 fi
@@ -278,6 +298,10 @@ prep_toolchain() {
           aosp)
               toolchain_dir="$AC_DIR"
               log_info "Toolchain: AOSP Clang"
+              ;;
+          aosp-r510928)
+              toolchain_dir="$AC_R510928_DIR"
+              log_info "Toolchain: AOSP Clang r510928"
               ;;
           proton)
               toolchain_dir="$PC_DIR"
