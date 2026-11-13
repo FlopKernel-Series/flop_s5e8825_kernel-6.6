@@ -1,0 +1,21 @@
+config SEC_FACTORY
+	bool "SAMSUNG Factory build option"
+	default n
+	help
+	  Include some codes for Factory binary.
+	  This option is enabled by Factory build option.
+	  In samsung build script, '-F' enables this option.
+
+config SEC_FACTORY_INTERPOSER
+	bool "Samsung Factory interposer binary"
+	default n
+	help
+	  Samsung Factory interposer binary.
+	  In samsung build script, '-g' enables this option.
+
+config SEC_RELOC_GPIO
+	tristate "Samsung Legacy-Style Relocated GPIO Interface for Factory Mode"
+	default n
+	depends on DRV_SAMSUNG
+	help
+	  Samsung Legacy-Style Relocated GPIO Interface for Factory Mode
