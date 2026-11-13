@@ -126,3 +126,19 @@ config SND_SOC_SAMSUNG_ABOX_CHANGE_RMEM_SIZE
 	help
 	  change reserved memory size for abox_dbg or abox_slog
 	  check debug_level or force_upload before alloc reserved memory and change the size.
+
+# SPDX-License-Identifier: GPL-2.0-only
+
+config SEC_SND_SYNCHRONIZED_IPC_AW
+	tristate "Samsung SYNC IPC AW"
+	help
+	  Say Y or M if you want to add support for external devices attached to
+	  the Samsung SoC ABOX interface. You will also need to
+	  select the audio interfaces to support below.
+
+config SEC_SND_SYNCHRONIZED_IPC_GDX
+	tristate "Samsung SYNC IPC GDX"
+	help
+	  Say Y or M if you want to add support for external devices attached to
+	  the Samsung SoC ABOX interface. You will also need to
+	  select the audio interfaces to support below.

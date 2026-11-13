@@ -2465,4 +2465,27 @@ config SND_SOC_CS35L41_SPI_E
 	select SND_SOC_CS35L41_E
 endmenu
 
+
+# SPDX-License-Identifier: GPL-2.0-only
+
+config SND_SOC_RL6231_MX
+	tristate
+	default m if SND_SOC_RT5665_MX=m
+
+config SND_SOC_RT5665_MX
+	tristate
+	depends on I2C
+
+config SND_SOC_RT5691_MX
+	tristate
+	depends on I2C
+
+config SND_SOC_FS1816
+	tristate "FourSemi fs1816 i2c driver"
+	depends on I2C
+
+config SND_SOC_TFA9878
+	tristate "Goodix TFA9878 amplifier"
+	depends on I2C
+
 endmenu

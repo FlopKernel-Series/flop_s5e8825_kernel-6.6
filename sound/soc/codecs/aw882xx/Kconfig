@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0
+
+config SND_SMARTPA_AW882XX
+	tristate "SoC Audio for Awinic aw882xx series"
+	depends on I2C
+	help
+	  This option enables support for aw882xx series Smart PA.
