@@ -18,3 +18,11 @@ obj-$(CONFIG_ARM_TEGRA_DEVFREQ)		+= tegra30-devfreq.o
 
 # DEVFREQ Event Drivers
 obj-$(CONFIG_PM_DEVFREQ_EVENT)		+= event/
+
+# SPDX-License-Identifier: GPL-2.0
+
+ccflags-y += -I$(srctree)
+
+# Exynos DEVFREQ Drivers
+obj-$(CONFIG_ARM_EXYNOS_DEVFREQ)		+= exynos_devfreq.o
+exynos_devfreq-$(CONFIG_ARM_EXYNOS_DEVFREQ)	+= exynos-devfreq.o governor_simpleinteractive.o

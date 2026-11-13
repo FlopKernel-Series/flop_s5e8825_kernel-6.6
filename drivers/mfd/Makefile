@@ -282,3 +282,43 @@ obj-$(CONFIG_MFD_ATC260X_I2C)	+= atc260x-i2c.o
 
 obj-$(CONFIG_MFD_RSMU_I2C)	+= rsmu_i2c.o rsmu_core.o
 obj-$(CONFIG_MFD_RSMU_SPI)	+= rsmu_spi.o rsmu_core.o
+
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for multifunction miscellaneous devices for samsung pmic
+#
+
+# S2P PMIC
+obj-$(CONFIG_MFD_S2P)			+= s2p_mfd.o
+s2p_mfd-$(CONFIG_MFD_S2P)		+= s2p_core.o s2p_irq.o s2p_handle_irq.o
+
+# SoC PMIC
+obj-$(CONFIG_MFD_S2MPS27)		+= s2mps27_mfd.o
+s2mps27_mfd-$(CONFIG_MFD_S2MPS27)	+= s2mps27_core.o s2mps27_irq.o
+obj-$(CONFIG_MFD_S2MPS28)		+= s2mps28_mfd.o
+s2mps28_mfd-$(CONFIG_MFD_S2MPS28)	+= s2mps28_core.o s2mps28_irq.o
+obj-$(CONFIG_MFD_S2MPM07)		+= s2mpm07_mfd.o
+s2mpm07_mfd-$(CONFIG_MFD_S2MPM07)	+= s2mpm07_core.o s2mpm07_irq.o
+
+obj-$(CONFIG_MFD_S2SE910)		+= s2se910_mfd.o
+s2se910_mfd-$(CONFIG_MFD_S2SE910)	+= s2se910_core.o s2se910_irq.o
+obj-$(CONFIG_MFD_S2SE911)		+= s2se911_mfd.o
+s2se911_mfd-$(CONFIG_MFD_S2SE911)	+= s2se911_core.o s2se911_irq.o
+obj-$(CONFIG_MFD_S2MPA05)		+= s2mpa05_mfd.o
+s2mpa05_mfd-$(CONFIG_MFD_S2MPA05)	+= s2mpa05_core.o s2mpa05_irq.o
+obj-$(CONFIG_MFD_S2RP910)		+= s2rp910_mfd.o
+s2rp910_mfd-$(CONFIG_MFD_S2RP910)	+= s2rp910_core.o s2rp910_irq.o
+
+obj-$(CONFIG_MFD_S2MPU15)		+= s2mpu15_mfd.o
+s2mpu15_mfd-$(CONFIG_MFD_S2MPU15)	+= s2mpu15_core.o s2mpu15_irq.o
+obj-$(CONFIG_MFD_S2MPU16)		+= s2mpu16_mfd.o
+s2mpu16_mfd-$(CONFIG_MFD_S2MPU16)	+= s2mpu16_core.o s2mpu16_irq.o
+
+obj-$(CONFIG_MFD_S2MPU13)		+= s2mpu13_mfd.o
+s2mpu13_mfd-$(CONFIG_MFD_S2MPU13)	+= s2mpu13_core.o s2mpu13_irq.o
+obj-$(CONFIG_MFD_S2MPU14)		+= s2mpu14_mfd.o
+s2mpu14_mfd-$(CONFIG_MFD_S2MPU14)	+= s2mpu14_core.o s2mpu14_notifier.o
+
+# Etc PMIC
+obj-$(CONFIG_MFD_S2MPB02)		+= s2mpb02_mfd.o
+s2mpb02_mfd-$(CONFIG_MFD_S2MPB02)	+= s2mpb02-core.o s2mpb02-irq.o
