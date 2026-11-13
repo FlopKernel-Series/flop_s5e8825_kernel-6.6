@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for the kernel display device drivers.
+#
+ifdef CONFIG_DRM_MCD_HDR
+hdr-dir := mcd_cal
+else
+hdr-dir := exynos_p2
+endif
+
+
+subdir-ccflags-y := -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu  		\
+                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/include 	\
+                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/cal_common 	\
+                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/exynos_p2	\
+                    -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/exynos_p2/cal_py	\
+                    -I${ROOT_DIR}/exynos/device/erd/erd8825/drivers/gpu/drm/samsung/panel \
+                    -I${ROOT_DIR}/exynos/device/erd/erd8825/include
+
+subdir-ccflags-$(CONFIG_DRM_MCD_COMMON)	+= -I${ROOT_DIR}/${EXYNOS_SOC_DIR}/drivers/dpu/mcd_cal
+
+exynos-drm-$(CONFIG_DRM_SAMSUNG_DPU) := exynos_drm_drv.o  exynos_drm_fb.o exynos_drm_format.o		\
+		exynos_drm_crtc.o exynos_drm_plane.o exynos_drm_connector.o	\
+		exynos_drm_debug.o exynos_drm_gem.o exynos_drm_migov.o		\
+		exynos_drm_tui.o exynos_drm_partial.o				\
+		exynos_drm_recovery.o						\
+		exynos_p2/exynos_drm_hibernation.o				\
+		exynos_p2/exynos_drm_freq_hop.o
+
+exynos-drm-$(CONFIG_DRM_MCD_COMMON) += mcd_cal/mcd_drm_decon.o mcd_cal/mcd_drm_dsim.o mcd_cal/mcd_drm_helper.o
+exynos-drm-$(CONFIG_DRM_FBDEV_EMULATION) += exynos_drm_fbdev.o
+exynos-drm-$(CONFIG_DRM_SAMSUNG_DECON)	+= exynos_p2/exynos_drm_decon.o
+exynos-drm-$(CONFIG_DRM_SAMSUNG_DPP)	+= exynos_p2/exynos_drm_dpp.o
+exynos-drm-$(CONFIG_DRM_SAMSUNG_DSI)	+= exynos_p2/exynos_drm_dsim.o
+exynos-drm-$(CONFIG_DRM_SAMSUNG_WB)	+= exynos_p2/exynos_drm_writeback.o
+
+exynos-drm-$(CONFIG_DRM_SAMSUNG_DQE)	+= exynos_p2/exynos_drm_dqe.o			\
+					   exynos_p2/cal_py/dqe_reg.o
+exynos-drm-$(CONFIG_DRM_SAMSUNG_HDR)	+= exynos_p2/exynos_drm_hdr.o			\
+					   exynos_p2/cal_py/hdr_reg.o
+
+exynos-drm-$(CONFIG_EXYNOS_DMA_DSIMFC)	+= exynos_p2/exynos_drm_dsimfc.o	\
+					   exynos_p2/cal_py/dsimfc_reg.o
+
+exynos-drm-$(CONFIG_DRM_SAMSUNG_DPU) += exynos_p2/cal_py/decon_reg.o		\
+					   exynos_p2/cal_py/dsim_reg.o		\
+					   exynos_p2/cal_py/dpp_reg.o		\
+
+
+exynos-drm-$(CONFIG_EXYNOS_BTS)		+= exynos_p2/exynos_drm_bts.o
+
+exynos-drm-$(CONFIG_EXYNOS_PROFILER_GPU)	+= exynos_drm_profiler.o
+
+obj-$(CONFIG_DRM_SAMSUNG_DPU)		+= exynos-drm.o
+obj-$(CONFIG_DPU_EXYNOS_KUNIT_TEST)     += tests/

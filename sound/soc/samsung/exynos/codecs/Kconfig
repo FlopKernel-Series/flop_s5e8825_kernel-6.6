@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config SND_SOC_S5M3700X
+	tristate "S5M3700X CODEC"
+
+config SND_SOC_S5M3700X_DUMP
+	tristate "S5M3700X CODEC DUMP"
+
+config SND_SOC_S5M3700X_VTS
+	tristate "S5M3700X CODEC VTS"
+
+config SND_SOC_S5M3700X_HIFI
+	tristate "S5M3700X CODEC HIFI"
