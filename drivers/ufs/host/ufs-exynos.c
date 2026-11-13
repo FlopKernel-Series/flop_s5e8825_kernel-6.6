@@ -2223,6 +2223,8 @@ static int exynos_ufs_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct exynos_ufs *ufs;
+	bool host_registered = false;
+	bool sysfs_inited = false;
 	int ret;
 
 	dev_info(dev, "%s: start\n", __func__);
@@ -2273,11 +2275,12 @@ static int exynos_ufs_probe(struct platform_device *pdev)
 	exynos_ufs_init_mem_log(pdev);
 	ret = exynos_ufs_init_dbg(&ufs->handle);
 	if (ret)
-		return ret;
+		goto out;
 
 	/* store ufs host symbols to analyse later */
 	ufs->id = ufs_host_index++;
 	ufs_host_backup[ufs->id] = ufs;
+	host_registered = true;
 
 #if IS_ENABLED(CONFIG_EXYNOS_UFS_EOM)
 	/* init for eom */
@@ -2285,7 +2288,7 @@ static int exynos_ufs_probe(struct platform_device *pdev)
 #endif
 
 	/* init sysfs */
-	exynos_ufs_sysfs_init(ufs);
+	sysfs_inited = !exynos_ufs_sysfs_init(ufs);
 
 	/* init specific states */
 	ufs->h_state = H_DISABLED;
@@ -2304,6 +2307,19 @@ static int exynos_ufs_probe(struct platform_device *pdev)
 	/* go to core driver through the glue driver */
 	ret = ufshcd_pltfrm_init(pdev, &exynos_ufs_ops);
 out:
+	if (ret && ufs) {
+		if (sysfs_inited)
+			exynos_ufs_sysfs_exit(ufs);
+		if (host_registered) {
+			ufs_host_backup[ufs->id] = NULL;
+			ufs_host_index--;
+		}
+		exynos_ufs_exit_dbg(&ufs->handle);
+#if IS_ENABLED(CONFIG_EXYNOS_PM_QOS) || IS_ENABLED(CONFIG_EXYNOS_PM_QOS_MODULE)
+		if (exynos_pm_qos_request_active(&ufs->pm_qos_int))
+			exynos_pm_qos_remove_request(&ufs->pm_qos_int);
+#endif
+	}
 	return ret;
 }
 
@@ -2321,6 +2337,7 @@ static int exynos_ufs_remove(struct platform_device *pdev)
 
 	disable_irq(hba->irq);
 	ufshcd_remove(hba);
+	exynos_ufs_exit_dbg(&ufs->handle);
 
 #if IS_ENABLED(CONFIG_EXYNOS_PM_QOS) || IS_ENABLED(CONFIG_EXYNOS_PM_QOS_MODULE)
 	exynos_pm_qos_remove_request(&ufs->pm_qos_int);

@@ -828,6 +828,25 @@ int exynos_ufs_init_dbg(struct ufs_vs_handle *handle)
 out:
 	return ret;
 }
+
+void exynos_ufs_exit_dbg(struct ufs_vs_handle *handle)
+{
+	struct ufs_dbg_mgr *mgr;
+	struct exynos_ufs_memlog *memlog;
+
+	if (ufs_dbg_mgr_idx <= 0)
+		return;
+
+	ufs_dbg_mgr_idx--;
+	mgr = &ufs_dbg[ufs_dbg_mgr_idx];
+	memlog = &ufs_memlog[ufs_dbg_mgr_idx];
+
+	if (memlog->desc)
+		memlog_unregister(memlog->desc);
+	memset(memlog, 0, sizeof(*memlog));
+	memset(mgr, 0, sizeof(*mgr));
+	handle->private = NULL;
+}
 MODULE_AUTHOR("Kiwoong Kim <kwmad.kim@samsung.com>");
 MODULE_DESCRIPTION("Exynos UFS debug information");
 MODULE_LICENSE("GPL");
