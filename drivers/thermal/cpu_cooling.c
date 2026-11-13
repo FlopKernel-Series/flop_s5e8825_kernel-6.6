@@ -39,7 +39,7 @@
 #include <soc/samsung/ect_parser.h>
 #include <soc/samsung/freq-qos-tracer.h>
 #include "exynos_tmu.h"
-#include "../../../../../common/drivers/thermal/thermal_core.h"
+#include "thermal_core.h"
 
 extern int exynos_build_static_power_table(struct device_node *np, int **var_table,
 		unsigned int *var_volt_size, unsigned int *var_temp_size, char *tz_name);

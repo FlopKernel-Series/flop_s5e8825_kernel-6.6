@@ -53,8 +53,8 @@
 #include <linux/pm_opp.h>
 
 #include "exynos_tmu.h"
-#include "../../../../../common/drivers/thermal/thermal_core.h"
-#include "../../../../../common/drivers/opp/opp.h"
+#include "thermal_core.h"
+#include "../opp/opp.h"
 #if IS_ENABLED(CONFIG_EXYNOS_ACPM_THERMAL)
 #include "exynos_acpm_tmu.h"
 #include <soc/samsung/exynos-pmu-if.h>
