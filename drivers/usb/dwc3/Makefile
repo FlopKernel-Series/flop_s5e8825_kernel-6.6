@@ -88,3 +88,11 @@ endif
 obj-$(CONFIG_USB_DEBUG_MODULE)		+= exynos_usb_debug.o
 obj-$(CONFIG_SEC_USB_CB)		+= sec_usb_cb.o
 obj-$(CONFIG_EXYNOS_USB_KUNIT_TEST) 	+= test/
+
+# SPDX-License-Identifier: GPL-2.0
+#
+# USB peripheral controller drivers
+# USB Functions
+obj-$(CONFIG_SEC_USB_HOOK) += sec_usb_hook.o
+
+subdir-ccflags-y += -I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/dwc3

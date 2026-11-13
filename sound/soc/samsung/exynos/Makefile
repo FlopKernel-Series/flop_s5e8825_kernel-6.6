@@ -77,3 +77,11 @@ obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS9925_SOUND) += exynos9925_sound.o
 obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS8825_SOUND) += exynos8825_sound.o
 
 obj-$(CONFIG_SND_SOC_SAMSUNG_AUDIO) += sec_audio_exynos.o snd_debug_proc.o
+# SPDX-License-Identifier: GPL-2.0
+
+obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS8825_AUDIO) += exynos8825_audio.o
+obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS8825_RT5665) += exynos8825_rt5665.o
+obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS8825_RT5665_DBMDX) += exynos8825_rt5665.o
+obj-$(CONFIG_SND_SOC_SAMSUNG_EXYNOS8825_RT5691) += exynos8825_rt5691.o
+
+obj-$(CONFIG_SND_SOC_SAMSUNG_AUDIO) += sec_audio_sysfs.o sec_audio_debug.o

@@ -9,3 +9,6 @@ nanohub-$(CONFIG_SENSOR_DRV) += main.o comms.o
 ifneq (,$(filter m ,$(CONFIG_SHUB)))
 nanohub-y += chub_shub.o
 endif
+
+
+nanohub-y += chub_shub.o

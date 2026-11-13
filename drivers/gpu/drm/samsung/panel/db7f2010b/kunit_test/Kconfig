@@ -1,0 +1,7 @@
+
+
+config DB7F2010B_A26X_TEST
+	bool "KUnit test for tft_common ddi driver"
+	depends on SEC_KUNIT
+	help
+	  TODO: Describe config fully.
