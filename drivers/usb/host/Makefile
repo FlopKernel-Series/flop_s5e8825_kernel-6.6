@@ -95,7 +95,7 @@ obj-$(CONFIG_USB_XEN_HCD)	+= xen-hcd.o
 
 # tell define_trace.h where to find the xhci trace header
 
-subdir-ccflags-y	+= -I${ROOT_DIR}/${KERNEL_DIR}/drivers/usb/host \
-			   -I${ROOT_DIR}/${KERNEL_DIR}/include/linux
+subdir-ccflags-y	+= -I$(srctree)/drivers/usb/host \
+			   -I$(srctree)/include/linux
 
 obj-$(CONFIG_USB_XHCI_EXYNOS)	+= xhci-exynos.o xhci-exynos-audio.o

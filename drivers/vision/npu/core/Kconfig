@@ -95,7 +95,7 @@ config FIRMWARE_SRAM_DUMP_DEBUGFS
 bool
 default y
 
-source "$(KCONFIG_EXT_SOC_PREFIX)drivers/vision/npu/core/interface/Kconfig"
+source "drivers/vision/npu/core/interface/Kconfig"
 
 config NPU_USE_MBR
 	bool "use Master Boot Record for FW booting"
