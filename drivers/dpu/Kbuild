@@ -52,4 +52,5 @@ exynos-drm-$(CONFIG_EXYNOS_BTS)		+= exynos_p2/exynos_drm_bts.o
 exynos-drm-$(CONFIG_EXYNOS_PROFILER_GPU)	+= exynos_drm_profiler.o
 
 obj-$(CONFIG_DRM_SAMSUNG_DPU)		+= exynos-drm.o
+obj-$(CONFIG_DRM_PANEL_MCD_COMMON)	+= panel/
 obj-$(CONFIG_DPU_EXYNOS_KUNIT_TEST)     += tests/
