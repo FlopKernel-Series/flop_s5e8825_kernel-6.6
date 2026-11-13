@@ -108,8 +108,10 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/initcall.h>
+
 
 #include <kunit/test.h>
 
@@ -1604,8 +1606,9 @@ static int __ref kernel_init(void *unused)
 
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
-		if (!ret)
+		if (!ret) {
 			return 0;
+		}
 		pr_err("Failed to execute %s (error %d)\n",
 		       ramdisk_execute_command, ret);
 	}
