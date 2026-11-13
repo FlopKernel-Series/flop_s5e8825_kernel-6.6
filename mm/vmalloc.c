@@ -50,6 +50,7 @@
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/mm.h>
 
+
 #include "internal.h"
 #include "pgalloc-track.h"
 
@@ -2880,11 +2881,6 @@ void vfree(const void *addr)
 		BUG_ON(!page);
 		if (!(vm->flags & VM_MAP_PUT_PAGES))
 			mod_memcg_page_state(page, MEMCG_VMALLOC, -1);
-		/*
-		 * High-order allocs for huge vmallocs are split, so
-		 * can be freed as an array of order-0 allocations
-		 */
-		__free_page(page);
 		cond_resched();
 	}
 	if (!(vm->flags & VM_MAP_PUT_PAGES))
@@ -4530,3 +4526,4 @@ void __init vmalloc_init(void)
 	vmap_init_free_space();
 	vmap_initialized = true;
 }
+
