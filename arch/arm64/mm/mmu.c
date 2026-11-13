@@ -40,9 +40,6 @@
 #include <asm/tlbflush.h>
 #include <asm/pgalloc.h>
 #include <asm/kfence.h>
-#ifdef CONFIG_RKP
-#include <linux/rkp.h>
-#endif
 
 #define NO_BLOCK_MAPPINGS	BIT(0)
 #define NO_CONT_MAPPINGS	BIT(1)
@@ -291,13 +288,7 @@ static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
 		if (flags & NO_EXEC_MAPPINGS)
 			pudval |= PUD_TABLE_PXN;
 		BUG_ON(!pgtable_alloc);
-#ifdef CONFIG_RKP
-		pmd_phys = rkp_ro_alloc_phys();
-		if (!pmd_phys)
-			pmd_phys = pgtable_alloc(PMD_SHIFT);
-#else		
 		pmd_phys = pgtable_alloc(PMD_SHIFT);
-#endif
 		__pud_populate(pudp, pmd_phys, pudval);
 		pud = READ_ONCE(*pudp);
 	}
@@ -802,12 +793,7 @@ void __init paging_init(void)
 	extern pgd_t init_idmap_pg_dir[];
 
 	idmap_t0sz = 63UL - __fls(__pa_symbol(_end) | GENMASK(VA_BITS_MIN - 1, 0));
-	
-#ifndef CONFIG_UH_PKVM
-#ifdef CONFIG_RKP
-	rkp_robuffer_init();
-#endif
-#endif
+
 	map_kernel(pgdp);
 	map_mem(pgdp);
 

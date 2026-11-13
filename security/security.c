@@ -2979,21 +2979,6 @@ void security_cred_free(struct cred *cred)
 	cred->security = NULL;
 }
 
-#ifdef CONFIG_KDP
-void security_cred_free_hook(struct cred *cred)
-{
-	/*
-	 * There is a failure case in prepare_creds() that
-	 * may result in a call here with ->security being NULL.
-	 */
-	if (unlikely(cred == NULL || cred->security == NULL))
-		return;
-
-	BUG_ON(!is_kdp_protect_addr((unsigned long)cred));
-
-	call_void_hook(cred_free, cred);
-}
-#endif
 
 /**
  * security_prepare_creds() - Prepare a new set of credentials
