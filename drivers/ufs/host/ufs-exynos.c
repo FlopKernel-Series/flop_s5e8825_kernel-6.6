@@ -746,6 +746,9 @@ static int exynos_ufs_setup_clocks(struct ufs_hba *hba, bool on,
 	struct exynos_ufs *ufs = to_exynos_ufs(hba);
 	int ret = 0;
 
+	if (!ufs || !ufs->handle.std)
+		return 0;
+
 	if (on) {
 		if (notify == PRE_CHANGE) {
 			/* Clear for SICD */
