@@ -2,6 +2,11 @@
 #include "ipc_chub.h"
 
 #include <linux/firmware.h>
+#include <linux/spu-verify.h>
+#include <linux/platform_data/nanohub.h>
+
+#define SPU_FW_FILE "spu/sensorhub/shub_spu.bin"
+#define FW_VER_LEN  8
 
 struct contexthub_ipc_info *chub_info;
 struct raw_notifier_head ipc_notifier_chain;
@@ -72,3 +77,5 @@ void get_chub_current_sram_dump(void)
 	contexthub_dump_notifier_call(CHUB_DUMPSTATE, &dump);
 }
 EXPORT_SYMBOL(get_chub_current_sram_dump);
+
+

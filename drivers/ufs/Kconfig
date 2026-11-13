@@ -27,4 +27,7 @@ source "drivers/ufs/core/Kconfig"
 
 source "drivers/ufs/host/Kconfig"
 
+
+source "drivers/ufs/host/Kconfig"
+
 endif

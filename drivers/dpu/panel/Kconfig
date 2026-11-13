@@ -51,3 +51,8 @@ config DRM_PANEL_SAMSUNG_S6E8FC1
 	  This driver supports S6E8FC1 panel on samsung SoC. It supports
 	  to turn on and off the S6E8FC1 panel and it can also supports
 	  panel specific features.
+config DRM_PANEL_MCD_COMMON
+	tristate "Samsung MCD Common panel"
+	depends on OF
+	depends on DRM_MIPI_DSI
+	select VIDEOMODE_HELPERS
