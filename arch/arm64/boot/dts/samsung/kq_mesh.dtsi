@@ -1,0 +1,8 @@
+&smd {
+	kq-mesh {
+		compatible = "samsung,kq-mesh";
+		status = "okay";
+
+		features {};
+	};
+};

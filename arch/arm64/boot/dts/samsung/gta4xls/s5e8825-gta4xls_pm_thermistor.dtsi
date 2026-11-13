@@ -1,0 +1,71 @@
+/*
+ * SAMSUNG S5E8825 Power Management device tree source
+ *
+ * Copyright (c) 2026 Samsung Electronics Co., Ltd.
+ *		http://www.samsung.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/ {
+	fragment@model {
+		target-path = "/";
+		__overlay__ {
+			sec_thermistor_0: sec_thermistor@1 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-ap-thermistor";
+				id = <0>;
+
+				adc_array = <234 296 359 421 496 589 694 816 956 1116
+					1295 1495 1713 1929 2183 2427 2662 2894 3108 3293
+					3457 3597 3708>;
+				temp_array = <900 850 800 750 700 650 600 550 500 450
+					400 350 300 250 200 150 100 50 0 (-50)
+					(-100) (-150) (-200)>;
+
+				io-channels = <&s2mpu13_gpadc 1>;
+				io-channel-names = "adc-ap-temp";
+				io-channel-ranges;
+			};
+
+			sec_thermistor_1: sec_thermistor@5 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-pa-thermistor";
+				id = <1>;
+
+				adc_array = <337 439 568 720 898 1101 1324 1557 1799 2044
+					2273 2497 2706 2895 3061 3211 3338 3450 3546 3628
+					3695 3763 3830>;
+				temp_array = <(-200) (-150) (-100) (-50) 0 50 100 150 200 250
+					300 350 400 450 500 550 600 650 700 750
+					800 850 900>;
+
+				io-channels = <&s2mpu13_gpadc 5>;
+				io-channel-names = "adc-pa-temp";
+				io-channel-ranges;
+			};
+
+			sec_thermistor_2: sec_thermistor@6 {
+				compatible = "samsung,sec-thermistor";
+				status = "okay";
+				thermistor_name = "sec-wf-thermistor";
+				id = <2>;
+
+				adc_array = <252 319 387 454 535 630 740 866 1036 1179
+					1366 1573 1794 2020 2266 2509 2744 2969 3176 3356
+					3508 3638 3741>;
+				temp_array = <900 850 800 750 700 650 600 550 500 450
+					400 350 300 250 200 150 100 50 0 (-50)
+					(-100) (-150) (-200)>;
+
+				io-channels = <&s2mpu13_gpadc 6>;
+				io-channel-names = "adc-wf-temp";
+				io-channel-ranges;
+			};
+		}; /* end of __overlay__ */
+	}; /* end of fragment */
+}; /* end of root */
