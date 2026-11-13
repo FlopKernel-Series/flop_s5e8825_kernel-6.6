@@ -28,7 +28,7 @@
 #include <soc/samsung/exynos_pm_qos.h>
 #include <soc/samsung/ect_parser.h>
 
-#include "../../../../../common/drivers/thermal/thermal_core.h"
+#include "thermal_core.h"
 /**
  * struct dev_cooling_device - data for cooling device with dev
  * @id: unique integer value corresponding to each dev_cooling_device
