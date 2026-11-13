@@ -1,0 +1,53 @@
+&pinctrl_0 {
+	ts_int_active: ts_int_active {
+		GPIO_CONFIG_PUD(AP,gpa0,gpa0,3, FUNC_INPUT_WAKEUP, PULL_NONE);
+	};
+
+	ts_int_suspend: ts_int_suspend {
+		GPIO_CONFIG_PUD(AP,gpa0,gpa0,3, FUNC_INPUT, PULL_NONE);
+	};
+};
+
+&hsi2c_6 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	tsp_focaltech: touchscreen@38 {
+		status = "okay";
+		compatible = "focaltech,fts";
+		reg = <0x38>;
+		pinctrl-names = "on_state", "off_state";
+		pinctrl-0 = <&ts_int_active>;
+		pinctrl-1 = <&ts_int_suspend>;
+#if LEGO_IS_USE(NC, ...)
+		tsp_io_ldo-supply = <&NC>;
+#endif
+#if LEGO_IS_USE(s_l16_reg, ...)
+		tsp_avdd_ldo-supply = <&s_l16_reg>;
+#endif
+		sec,irq_gpio = <SEC_GPIO_REF(AP,gpa0,gpa0,3) 0x02>;
+		support_dex_mode;
+		sec,enable_sysinput_enabled;
+		support_open_short_test;
+	};
+};
+
+/* /home/dpi/qb5_8814/workspace/P4_1716/kernel/kmodule/input/sec_input_2024/touchscreen/focaltech/ft3519/dts/input-lsi-tsp-ft3519.a26xs.dtsi */
+&tsp_focaltech {
+	status = "okay";
+	not_support_io_ldo;
+	support_ear_detect_mode;
+	support_vbus_notifier;
+	support_refresh_rate_mode;
+	enable_settings_aot;
+	sec,max_coords = <1080 2340>;
+	sec,firmware_name = "ft3419_a26x.bin";
+	sec_cmd,not_support_cmds = "refresh_rate_mode";
+	focal,support_high_report;	// only for A26
+};
+
+&hsi2c6_bus {
+	samsung,pin-con-pdn = <3>;
+	samsung,pin-pud-pdn = <3>;
+};

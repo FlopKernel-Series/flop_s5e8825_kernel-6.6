@@ -1,0 +1,68 @@
+/ {
+	/* camera mode - touch boost */
+	set5_1: set@0501 {
+		/* Boosting margin applied to frequency selection */
+		freqboost {				/*  LIT  BIG */
+			top-app				= <  15   15>;
+			foreground			= <  15   15>;
+			camera-daemon		= <  15   15>;
+		};
+
+		frt {	   			/* LIT BIG */
+			active-ratio	= < 25   5>;
+		};
+
+		/* Ontime Migration */
+		ontime {
+			domain0 {
+				cpus = "0-5";
+				lower-boundary = <0>;
+				upper-boundary = <21>;
+			};
+			domain1 {
+				cpus = "6-7";
+				lower-boundary = <8>;
+				upper-boundary = <66>;
+			};
+		};
+
+		ecs { };
+
+		ecs_dynamic { };
+
+		gsc {
+			up_threshold = <0>;
+
+			monitor-group {
+				top-app			= <1>;
+				foreground		= <1>;
+				camera-daemon	= <1>;
+			};
+		};
+
+		should_spread {
+			enabled = <1>;
+		};
+
+		cpuidle_gov {
+			expired-ratio = < 50 50 >;
+		};
+
+		ntu {
+			root				= <0>;
+			foreground 			= <0>;
+			background			= <0>;
+			top-app				= <0>;
+			rt					= <0>;
+			system				= <0>;
+			system-background	= <0>;
+			nnapi-hal			= <0>;
+			camera-daemon		= <0>;
+		};
+
+		cpufreq_gov {
+				/* LIT BIG */
+			htask-boost = < 150 150 >;
+		};
+	};
+};
