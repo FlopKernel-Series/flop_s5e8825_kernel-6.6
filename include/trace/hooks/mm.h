@@ -702,6 +702,14 @@ DECLARE_HOOK(android_vh_mm_customize_lru_add_dst,
 DECLARE_HOOK(android_vh_oom_reaper_delay_bypass,
 	TP_PROTO(struct task_struct *tsk, bool *bypass),
 	TP_ARGS(tsk, bypass));
+
+DECLARE_HOOK(android_vh_has_unmovable_pages_bypass,
+	TP_PROTO(unsigned long start_pfn, unsigned long end_pfn, int migratetype, bool *bypass),
+	TP_ARGS(start_pfn, end_pfn, migratetype, bypass));
+DECLARE_HOOK(android_vh_alloc_contig_range_skip_lru,
+	TP_PROTO(unsigned long start_pfn, unsigned long end_pfn, int migratetype, gfp_t gfp_mask, bool *skip_lru_cache),
+	TP_ARGS(start_pfn, end_pfn, migratetype, gfp_mask, skip_lru_cache));
+
 DECLARE_HOOK(android_vh_filemap_get_folio_end,
 	TP_PROTO(struct address_space *mapping, struct folio *folio),
 	TP_ARGS(mapping, folio));
