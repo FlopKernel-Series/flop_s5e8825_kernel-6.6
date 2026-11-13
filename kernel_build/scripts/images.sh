@@ -7,7 +7,14 @@ build_images() {
     local DTBO_FILES=("$OUTDIR/arch/arm64/boot/dts/samsung/$CODENAME/"*.dtbo)
     if [ -f "${DTBO_FILES[0]}" ]; then
         echo -e "$(log_info "Building dtbo image...")"
-        python3 "$MKDTBOIMG" create "$OUT_DTBOIMAGE" --page_size=2048 "${DTBO_FILES[@]}" || exit 1
+        local DTBO_ARGS=()
+        local dtbo_file hw_min hw_max
+        for dtbo_file in "${DTBO_FILES[@]}"; do
+            hw_min=$(fdtget "$dtbo_file" / dtbo-hw_rev 2>/dev/null || echo "0")
+            hw_max=$(fdtget "$dtbo_file" / dtbo-hw_rev_end 2>/dev/null || echo "$hw_min")
+            DTBO_ARGS+=("$dtbo_file" "--custom0=$hw_min" "--custom1=$hw_max")
+        done
+        python3 "$MKDTBOIMG" create "$OUT_DTBOIMAGE" --page_size=2048 "${DTBO_ARGS[@]}" || exit 1
     fi
 
     "$MKBOOTIMG" --header_version 4 \
