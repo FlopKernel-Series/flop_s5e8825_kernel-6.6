@@ -115,14 +115,6 @@ struct task_struct init_task
 	.children	= LIST_HEAD_INIT(init_task.children),
 	.sibling	= LIST_HEAD_INIT(init_task.sibling),
 	.group_leader	= &init_task,
-#ifdef CONFIG_KDP
-	RCU_POINTER_INITIALIZER(real_cred, (struct cred *)&init_cred_kdp),
-	RCU_POINTER_INITIALIZER(cred, (struct cred *)&init_cred_kdp),
-#else	
-	RCU_POINTER_INITIALIZER(real_cred, &init_cred),
-	RCU_POINTER_INITIALIZER(cred, &init_cred),
-	.comm		= INIT_TASK_COMM,
-#endif
 	.thread		= INIT_THREAD,
 	.fs		= &init_fs,
 	.files		= &init_files,

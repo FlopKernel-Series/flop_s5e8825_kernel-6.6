@@ -1036,9 +1036,6 @@ static int exec_mmap(struct mm_struct *mm)
 	lru_gen_add_mm(mm);
 	task_unlock(tsk);
 	lru_gen_use_mm(mm);
-#ifdef CONFIG_KDP
-	kdp_set_cred_pgd((u64)current_cred(), mm);
-#endif	
 	if (old_mm) {
 		mmap_read_unlock(old_mm);
 		BUG_ON(active_mm != old_mm);
