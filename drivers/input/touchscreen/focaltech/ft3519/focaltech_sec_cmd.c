@@ -1734,7 +1734,8 @@ static void run_cs_delta_read_all(void *device_data)
 
 	FTS_FUNC_ENTER();
 
-	buff = kzalloc(ts_data->tx_num * ts_data->rx_num * CMD_RESULT_WORD_LEN, GFP_KERNEL);
+	size_t buff_size = ts_data->tx_num * ts_data->rx_num * CMD_RESULT_WORD_LEN;
+	buff = kzalloc(buff_size, GFP_KERNEL);
 
 	if (!buff) {
 		FTS_ERROR("failed to alloc allnode buff");
@@ -1791,11 +1792,11 @@ out_testmode:
 out:
 	if (ret < 0) {
 		sec->cmd_state = SEC_CMD_STATUS_FAIL;
-		snprintf(buff, sizeof(buff), "NG");
+		snprintf(buff, buff_size, "NG");
 	} else
 		sec->cmd_state = SEC_CMD_STATUS_OK;
 
-	sec_cmd_set_cmd_result(sec, buff, strnlen(buff, sizeof(buff)));
+	sec_cmd_set_cmd_result(sec, buff, strnlen(buff, buff_size));
 	FTS_INFO("%s", buff);
 
 	enter_work_mode();
