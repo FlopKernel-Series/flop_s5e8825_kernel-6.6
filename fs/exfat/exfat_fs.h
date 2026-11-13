@@ -10,6 +10,7 @@
 #include <linux/ratelimit.h>
 #include <linux/nls.h>
 #include <linux/blkdev.h>
+#include <linux/backing-dev.h>
 #include <uapi/linux/exfat.h>
 
 #define EXFAT_ROOT_INO		1
@@ -82,6 +83,10 @@ enum {
 #define EXFAT_HINT_NONE		-1
 #define EXFAT_MIN_SUBDIR	2
 
+#define EXFAT_BLK_RA_SIZE(sb)		\
+	(min_t(blkcnt_t, (sb)->s_bdi->ra_pages, (sb)->s_bdi->io_pages) \
+	<< (PAGE_SHIFT - (sb)->s_blocksize_bits))
+
 /*
  * helpers for cluster size to byte conversion.
  */
@@ -120,9 +125,9 @@ enum {
 #define FAT_ENT_SIZE (4)
 #define FAT_ENT_SIZE_BITS (2)
 #define FAT_ENT_OFFSET_SECTOR(sb, loc) (EXFAT_SB(sb)->FAT1_start_sector + \
-	(((u64)loc << FAT_ENT_SIZE_BITS) >> sb->s_blocksize_bits))
+	(((u64)(loc) << FAT_ENT_SIZE_BITS) >> sb->s_blocksize_bits))
 #define FAT_ENT_OFFSET_BYTE_IN_SECTOR(sb, loc)	\
-	((loc << FAT_ENT_SIZE_BITS) & (sb->s_blocksize - 1))
+	(((loc) << FAT_ENT_SIZE_BITS) & (sb->s_blocksize - 1))
 
 /*
  * helpers for bitmap.
@@ -450,6 +455,8 @@ int exfat_find_last_cluster(struct super_block *sb, struct exfat_chain *p_chain,
 		unsigned int *ret_clu);
 int exfat_count_num_clusters(struct super_block *sb,
 		struct exfat_chain *p_chain, unsigned int *ret_count);
+int exfat_blk_readahead(struct super_block *sb, sector_t sec,
+		sector_t *ra, blkcnt_t *ra_cnt, sector_t end);
 
 /* balloc.c */
 int exfat_load_bitmap(struct super_block *sb);
@@ -555,14 +562,19 @@ void __exfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 		fmt, ## args)
 
 /* expand to pr_*() with prefix */
+#define EXFAT_PRINTK_PREFIX "exFAT-fs (%s[%d:%d]): "
 #define exfat_err(sb, fmt, ...)						\
-	pr_err("exFAT-fs (%s): " fmt "\n", (sb)->s_id, ##__VA_ARGS__)
+	pr_err(EXFAT_PRINTK_PREFIX fmt "\n", (sb)->s_id,		\
+	       MAJOR((sb)->s_dev), MINOR((sb)->s_dev), ##__VA_ARGS__)
 #define exfat_warn(sb, fmt, ...)					\
-	pr_warn("exFAT-fs (%s): " fmt "\n", (sb)->s_id, ##__VA_ARGS__)
+	pr_warn(EXFAT_PRINTK_PREFIX fmt "\n", (sb)->s_id,		\
+	       MAJOR((sb)->s_dev), MINOR((sb)->s_dev), ##__VA_ARGS__)
 #define exfat_info(sb, fmt, ...)					\
-	pr_info("exFAT-fs (%s): " fmt "\n", (sb)->s_id, ##__VA_ARGS__)
+	pr_info(EXFAT_PRINTK_PREFIX fmt "\n", (sb)->s_id,		\
+	       MAJOR((sb)->s_dev), MINOR((sb)->s_dev), ##__VA_ARGS__)
 #define exfat_debug(sb, fmt, ...)					\
-	pr_debug("exFAT-fs (%s): " fmt "\n", (sb)->s_id, ##__VA_ARGS__)
+	pr_debug(EXFAT_PRINTK_PREFIX fmt "\n", (sb)->s_id,		\
+	       MAJOR((sb)->s_dev), MINOR((sb)->s_dev), ##__VA_ARGS__)
 
 void exfat_get_entry_time(struct exfat_sb_info *sbi, struct timespec64 *ts,
 		u8 tz, __le16 time, __le16 date, u8 time_cs);

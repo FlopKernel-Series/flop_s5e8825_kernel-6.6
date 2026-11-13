@@ -783,7 +783,7 @@ static void fuse_sync_fs_writes(struct fuse_conn *fc)
 	 */
 	atomic_dec(&bucket->count);
 
-	wait_event(bucket->waitq, atomic_read(&bucket->count) == 0);
+	fuse_wait_event(bucket->waitq, atomic_read(&bucket->count) == 0);
 
 	/* Drop temp count on descendant bucket */
 	fuse_sync_bucket_dec(new_bucket);
@@ -845,6 +845,7 @@ enum {
 	OPT_ROOT_BPF,
 	OPT_ROOT_DIR,
 	OPT_NO_DAEMON,
+	OPT_PERF,
 	OPT_ERR
 };
 
@@ -862,6 +863,7 @@ static const struct fs_parameter_spec fuse_fs_parameters[] = {
 	fsparam_u32	("root_bpf",		OPT_ROOT_BPF),
 	fsparam_u32	("root_dir",		OPT_ROOT_DIR),
 	fsparam_flag	("no_daemon",		OPT_NO_DAEMON),
+	fsparam_string	("perf",		OPT_PERF),
 	{}
 };
 
@@ -989,6 +991,19 @@ static int fuse_parse_param(struct fs_context *fsc, struct fs_parameter *param)
 		ctx->fd_present = true;
 		break;
 
+	case OPT_PERF:
+#ifdef CONFIG_FUSE_PERF
+		if (SEC_FUSE_FS_CONTEXT(ctx)->perf_node_name)
+			return invalfc(fsc, "Multiple perf node name specified");
+		/*
+		 * NOTE: If memory allocation failes, proceed with mounting without the fuse perf.
+		 */
+		SEC_FUSE_FS_CONTEXT(ctx)->perf_node_name = kstrdup(param->string, GFP_KERNEL);
+#else
+		pr_info("ignore fuse OPT_PERF option");
+#endif
+		break;
+
 	default:
 		return -EINVAL;
 	}
@@ -1006,7 +1021,11 @@ static void fuse_free_fsc(struct fs_context *fsc)
 		if (ctx->root_bpf)
 			bpf_prog_put(ctx->root_bpf);
 		kfree(ctx->subtype);
+#ifdef CONFIG_FUSE_SEC
+		fuse_sec_fs_context_free(ctx);
+#else
 		kfree(ctx);
+#endif
 	}
 }
 
@@ -1118,6 +1137,10 @@ void fuse_conn_put(struct fuse_conn *fc)
 	if (refcount_dec_and_test(&fc->count)) {
 		struct fuse_iqueue *fiq = &fc->iq;
 		struct fuse_sync_bucket *bucket;
+
+		fuse_watchdog_stop(fc);
+		fuse_perf_destroy(fc);
+		fuse_inflight_remove_node(fc);
 
 		if (IS_ENABLED(CONFIG_FUSE_DAX))
 			fuse_dax_conn_free(fc);
@@ -1514,6 +1537,11 @@ static void process_init_reply(struct fuse_mount *fm, struct fuse_args *args,
 		fc->conn_error = 1;
 	}
 
+	ST_LOG("<%s> dev = %u:%u  fuse Initialized",
+			__func__, MAJOR(fc->dev), MINOR(fc->dev));
+
+	fuse_watchdog_start(fc);
+
 	fuse_set_initialized(fc);
 	wake_up_all(&fc->blocked_waitq);
 }
@@ -1590,7 +1618,11 @@ void fuse_free_conn(struct fuse_conn *fc)
 	WARN_ON(!list_empty(&fc->devices));
 	idr_for_each(&fc->passthrough_req, free_fuse_passthrough, NULL);
 	idr_destroy(&fc->passthrough_req);
+#ifdef CONFIG_FUSE_SEC
+	fuse_sec_conn_free(fc);
+#else
 	kfree(fc);
+#endif
 }
 EXPORT_SYMBOL_GPL(fuse_free_conn);
 
@@ -1639,13 +1671,21 @@ struct fuse_dev *fuse_dev_alloc(void)
 	struct fuse_dev *fud;
 	struct list_head *pq;
 
+#ifdef CONFIG_FUSE_SEC
+	fud = fuse_sec_dev_alloc(GFP_KERNEL);
+#else
 	fud = kzalloc(sizeof(struct fuse_dev), GFP_KERNEL);
+#endif
 	if (!fud)
 		return NULL;
 
 	pq = kcalloc(FUSE_PQ_HASH_SIZE, sizeof(struct list_head), GFP_KERNEL);
 	if (!pq) {
+#ifdef CONFIG_FUSE_SEC
+		fuse_sec_dev_free(fud);
+#else
 		kfree(fud);
+#endif
 		return NULL;
 	}
 
@@ -1682,6 +1722,8 @@ void fuse_dev_free(struct fuse_dev *fud)
 {
 	struct fuse_conn *fc = fud->fc;
 
+	fuse_inflight_remove_processing_node(fud);
+
 	if (fc) {
 		spin_lock(&fc->lock);
 		list_del(&fud->entry);
@@ -1690,7 +1732,11 @@ void fuse_dev_free(struct fuse_dev *fud)
 		fuse_conn_put(fc);
 	}
 	kfree(fud->pq.processing);
+#ifdef CONFIG_FUSE_SEC
+	fuse_sec_dev_free(fud);
+#else
 	kfree(fud);
+#endif
 }
 EXPORT_SYMBOL_GPL(fuse_dev_free);
 
@@ -1705,6 +1751,9 @@ static void fuse_sb_defaults(struct super_block *sb)
 	sb->s_iflags |= SB_I_IMA_UNVERIFIABLE_SIGNATURE;
 	if (sb->s_user_ns != &init_user_ns)
 		sb->s_iflags |= SB_I_UNTRUSTED_MOUNTER;
+#ifdef CONFIG_FREEZABLE_IN_LOOKUP
+	sb->s_iflags |= SB_I_FREEZABLE_IN_LOOKUP;
+#endif
 	sb->s_flags &= ~(SB_NOSEC | SB_I_VERSION);
 }
 
@@ -1904,6 +1953,11 @@ int fuse_fill_super_common(struct super_block *sb, struct fuse_fs_context *ctx)
 	if (ctx->fudptr)
 		*ctx->fudptr = fud;
 	mutex_unlock(&fuse_mutex);
+
+	fuse_sec_set_id(fc);
+	fuse_perf_init(fc, ctx);
+	fuse_inflight_create_node_on_mount(fc, fud);
+
 	return 0;
 
  err_unlock:
@@ -1973,13 +2027,21 @@ static int fuse_get_tree(struct fs_context *fsc)
 	struct super_block *sb;
 	int err;
 
+#ifdef CONFIG_FUSE_SEC
+	fc = fuse_sec_conn_alloc(GFP_KERNEL);
+#else
 	fc = kmalloc(sizeof(*fc), GFP_KERNEL);
+#endif
 	if (!fc)
 		return -ENOMEM;
 
 	fm = kzalloc(sizeof(*fm), GFP_KERNEL);
 	if (!fm) {
+#ifdef CONFIG_FUSE_SEC
+		fuse_sec_conn_free(fc);
+#else
 		kfree(fc);
+#endif
 		return -ENOMEM;
 	}
 
@@ -2039,7 +2101,11 @@ static int fuse_init_fs_context(struct fs_context *fsc)
 {
 	struct fuse_fs_context *ctx;
 
+#ifdef CONFIG_FUSE_SEC
+	ctx = fuse_sec_fs_context_alloc(GFP_KERNEL);
+#else
 	ctx = kzalloc(sizeof(struct fuse_fs_context), GFP_KERNEL);
+#endif
 	if (!ctx)
 		return -ENOMEM;
 
@@ -2326,9 +2392,13 @@ static int __init fuse_init(void)
 	if (res)
 		goto err_dev_cleanup;
 
-	res = fuse_ctl_init();
+	res = fuse_sec_init();
 	if (res)
 		goto err_sysfs_cleanup;
+
+	res = fuse_ctl_init();
+	if (res)
+		goto err_sec_cleanup;
 
 #ifdef CONFIG_FUSE_BPF
 	res = fuse_bpf_init();
@@ -2345,6 +2415,8 @@ static int __init fuse_init(void)
  err_ctl_cleanup:
 	fuse_ctl_cleanup();
 #endif
+ err_sec_cleanup:
+	fuse_sec_cleanup();
  err_sysfs_cleanup:
 	fuse_sysfs_cleanup();
  err_dev_cleanup:
@@ -2359,6 +2431,7 @@ static void __exit fuse_exit(void)
 {
 	pr_debug("exit\n");
 
+	fuse_sec_cleanup();
 	fuse_ctl_cleanup();
 	fuse_sysfs_cleanup();
 	fuse_fs_cleanup();
