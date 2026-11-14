@@ -1,4 +1,5 @@
 /dts-v1/;
+/plugin/;
 
 / {
 	compatible = "SAMSUNG,A25X_SWA_OPEN", "SAMSUNG,EXYNOS8825";
@@ -951,6 +952,14 @@
 						ttf_charge_current = <0x8fc>;
 						rx_power = <0x3a98>;
 					};
+				};
+
+				usb_notifier {
+					compatible = "samsung,usb-notifier";
+					udc = <&udc>;
+					status = "okay";
+					disable_host_wakelock;
+					disable_device_wakelock;
 				};
 			};
 		};
