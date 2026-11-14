@@ -67,7 +67,7 @@ CONFIG_ARM64_PMEM=y
 CONFIG_RANDOMIZE_BASE=y
 # CONFIG_RANDOMIZE_MODULE_REGION_FULL is not set
 CONFIG_UNWIND_PATCH_PAC_INTO_SCS=y
-CONFIG_CMDLINE="console=ttynull stack_depot_disable=on cgroup_disable=pressure bootconfig"
+CONFIG_CMDLINE="console=ttynull stack_depot_disable=on cgroup_disable=pressure dmabuf_accounting=0 bootconfig"
 CONFIG_CMDLINE_EXTEND=y
 # CONFIG_DMI is not set
 CONFIG_HIBERNATION=y
