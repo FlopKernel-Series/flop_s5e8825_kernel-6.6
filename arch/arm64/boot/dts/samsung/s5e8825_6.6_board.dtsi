@@ -1,0 +1,42 @@
+/*
+ * SAMSUNG S5E8825 board device tree source
+ *
+ * Copyright (c) 2024 Samsung Electronics Co., Ltd.
+ *		http://www.samsung.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/ {
+	fragment@6_6_board {
+		target-path = "/";
+
+		__overlay__ {
+			ufs-sec-driver {
+				compatible = "samsung,ufs-sec-driver";
+				status = "okay";
+			};
+
+			mmc-sec-driver {
+				compatible = "samsung,mmc-sec-driver";
+				status = "okay";
+			};
+
+			sec_debug_dprt {
+				compatible = "samsung,sec_debug_dprt";
+				status = "okay";
+				bdev_path = "/dev/block/by-name/debug";
+			};
+
+			vbat: vbat {
+				compatible = "regulator-fixed";
+				regulator-name = "VBAT";
+				regulator-min-microvolt = <4200000>;
+				regulator-max-microvolt = <4200000>;
+				regulator-boot-on;
+			};
+		};
+	};
+};
