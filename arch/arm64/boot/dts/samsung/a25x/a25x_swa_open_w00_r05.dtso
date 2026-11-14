@@ -1,5 +1,6 @@
 /dts-v1/;
 /plugin/;
+#include "../s5e8825_6.6_board.dtsi"
 
 / {
 	compatible = "SAMSUNG,A25X_SWA_OPEN", "SAMSUNG,EXYNOS8825";
