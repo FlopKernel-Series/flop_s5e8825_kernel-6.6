@@ -287,6 +287,27 @@ int of_samsung_property_read_string(struct device *dev,
 	return ret;
 }
 
+int abox_request_firmware(const struct firmware **firmware, const char *name,
+		struct device *dev)
+{
+	int ret;
+
+	ret = request_firmware_direct(firmware, name, dev);
+	if (ret < 0 || !(*firmware)->size) {
+		release_firmware(*firmware);
+		*firmware = NULL;
+		ret = request_firmware(firmware, name, dev);
+	}
+	if (ret < 0 || (*firmware)->size)
+		return ret;
+
+	/* Empty placeholders may be replaced by the real firmware later. */
+	release_firmware(*firmware);
+	*firmware = NULL;
+
+	return -EAGAIN;
+}
+
 void cache_firmware_simple(const struct firmware *fw, void *context)
 {
 	const struct firmware **p_firmware = context;
