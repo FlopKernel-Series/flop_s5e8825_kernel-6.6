@@ -4224,7 +4224,7 @@ static const struct power_supply_desc hl7132_psy_desc = {
 	.num_properties = ARRAY_SIZE(hl7132_psy_props),
 };
 
-#if (KERNEL_VERSION(6, 11, 0) <= LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
 static int hl7132_charger_probe(struct i2c_client *client)
 #else
 static int hl7132_charger_probe(struct i2c_client *client, const struct i2c_device_id *id)
@@ -4347,7 +4347,7 @@ FAIL_IRQ:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 static int hl7132_charger_remove(struct i2c_client *client)
 #else
 static void hl7132_charger_remove(struct i2c_client *client)
@@ -4374,7 +4374,7 @@ static void hl7132_charger_remove(struct i2c_client *client)
 
 	pr_info("%s: --\n", __func__);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 	return 0;
 #endif
 }
