@@ -2947,6 +2947,23 @@
 				phandle = <0xa1>;
 			};
 
+			sec_usb_cb {
+				compatible = "samsung,sec_usb_cb";
+				status = "okay";
+			};
+
+			sec_usb_hook {
+				compatible = "samsung,sec_usb_hook";
+				status = "okay";
+			};
+
+			sec-audio-exynos {
+				compatible = "samsung,audio-exynos";
+				abox_dbg_size_min = <0x600000>;
+				abox_slog_size_min = <0x00>;
+				status = "okay";
+			};
+
 			sec-audio-sysfs {
 				compatible = "samsung,audio-sysfs";
 				status = "okay";
@@ -2958,6 +2975,11 @@
 				status = "okay";
 				abox_dbg_size_min = <0x600000>;
 				abox_slog_size_min = <0x00>;
+			};
+
+			snd-debug-proc {
+				compatible = "samsung,snd-debug-proc";
+				status = "okay";
 			};
 
 			sound {
