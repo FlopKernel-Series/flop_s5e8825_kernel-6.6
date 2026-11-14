@@ -561,6 +561,8 @@ enum mfc_view_id {
 	MFC_VIEW_ID_SUB		= 1,
 };
 
+struct mfc_enc_guard;
+
 /**
  * struct mfc_buf - MFC buffer
  *
@@ -572,6 +574,7 @@ struct mfc_buf {
 	phys_addr_t paddr;
 	struct dma_buf *dmabufs[MAX_NUM_IMAGES_IN_VB][MFC_MAX_PLANES];
 	struct dma_buf_attachment *attachments[MAX_NUM_IMAGES_IN_VB][MFC_MAX_PLANES];
+	struct mfc_enc_guard *guard[MFC_MAX_PLANES];
 	size_t sg_size;
 	int src_index;
 	int dpb_index;
