@@ -1444,12 +1444,18 @@ static void __fixup_dev_quirks(struct ufs_hba *hba)
 
 static void exynos_ufs_register_vendor_hooks(void)
 {
+	static bool registered;
+
+	if (registered)
+		return;
+
 	register_trace_android_vh_ufs_compl_command(exynos_ufs_compl_nexus_t_xfer_req, NULL);
 	register_trace_android_vh_ufs_check_int_errors(__check_int_errors, NULL);
 #if IS_ENABLED(CONFIG_SEC_UFS_FEATURE)
 	/* register vendor hooks */
 	ufs_sec_register_vendor_hooks();
 #endif
+	registered = true;
 }
 
 /* to make device state active */
