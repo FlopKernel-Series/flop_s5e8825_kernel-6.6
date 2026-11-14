@@ -1191,6 +1191,7 @@ struct exynos_drm_crtc *exynos_drm_crtc_create(struct drm_device *drm_dev,
 		drm_object_attach_property(&crtc->base, p->adjusted_vblank, 0);
 		drm_object_attach_property(&crtc->base, p->dsr_status, 0);
 		drm_object_attach_property(&crtc->base, p->operation_mode, op_mode);
+		drm_object_attach_property(&crtc->base, p->modeset_only, 0);
 		drm_object_attach_property(&crtc->base, p->skip_frameupdate, 0);
 		drm_object_attach_property(&crtc->base, p->partial, 0);
 		drm_object_attach_property(&crtc->base, p->bts_fps, 0);
