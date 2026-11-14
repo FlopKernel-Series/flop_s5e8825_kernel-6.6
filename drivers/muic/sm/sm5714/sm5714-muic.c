@@ -1342,6 +1342,7 @@ static void sm5714_muic_handle_attach(struct sm5714_muic_data *muic_data,
 #ifndef CONFIG_SEC_FACTORY
 		sm5714_muic_set_bc12((void *)muic_data, 0);
 #endif
+		fallthrough;
 	case ATTACHED_DEV_USB_MUIC:
 	case ATTACHED_DEV_CDP_MUIC:
 		ret = com_to_usb(muic_data);
