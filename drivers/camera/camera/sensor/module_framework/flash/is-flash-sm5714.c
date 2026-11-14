@@ -24,7 +24,7 @@
 #include "is-core.h"
 
 #if IS_ENABLED(CONFIG_LEDS_SM5714)
-#include "leds/sm5714.h"
+#include <linux/sm5714.h>
 #endif
 
 static int flash_sm5714_init(struct v4l2_subdev *subdev, u32 val)
