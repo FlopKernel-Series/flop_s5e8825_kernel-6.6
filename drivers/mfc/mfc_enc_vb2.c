@@ -166,6 +166,121 @@ static int mfc_enc_buf_init(struct vb2_buffer *vb)
 	return 0;
 }
 
+struct mfc_enc_guard {
+	struct sg_table sgt;
+	struct page *page;
+	dma_addr_t addr;
+	size_t size;
+};
+
+static void mfc_enc_guard_unmap(struct mfc_ctx *ctx, struct mfc_buf *buf,
+		int plane)
+{
+	struct mfc_enc_guard *guard = buf->guard[plane];
+
+	if (!guard)
+		return;
+
+	dma_unmap_sgtable(ctx->dev->device, &guard->sgt, DMA_BIDIRECTIONAL, 0);
+	sg_free_table(&guard->sgt);
+	__free_pages(guard->page, get_order(guard->size));
+	kfree(guard);
+	buf->guard[plane] = NULL;
+}
+
+static int mfc_enc_guard_map(struct mfc_ctx *ctx, struct vb2_buffer *vb,
+		int plane)
+{
+	struct mfc_buf *buf = vb_to_mfc_buf(vb);
+	struct mfc_raw_info *raw = &ctx->raw_buf;
+	struct sg_table *src = vb2_dma_sg_plane_desc(vb, plane);
+	struct mfc_enc_guard *guard;
+	struct scatterlist *sg, *dst;
+	size_t pad_size;
+	int i, ret;
+
+	if (buf->guard[plane]) {
+		buf->addr[0][plane] = buf->guard[plane]->addr;
+		dma_sync_sgtable_for_device(ctx->dev->device, &buf->guard[plane]->sgt,
+				DMA_BIDIRECTIONAL);
+		return 0;
+	}
+
+	pad_size = raw->stride[plane] *
+		(ALIGN(ctx->img_height, 32) - ALIGN(ctx->img_height, 16));
+	if (plane)
+		pad_size /= 2;
+	pad_size = PAGE_ALIGN(pad_size);
+
+	guard = kzalloc(sizeof(*guard), GFP_KERNEL);
+	if (!guard)
+		return -ENOMEM;
+
+	guard->size = pad_size;
+	guard->page = alloc_pages(GFP_HIGHUSER | __GFP_ZERO, get_order(pad_size));
+	if (!guard->page) {
+		ret = -ENOMEM;
+		goto err_free_guard;
+	}
+
+	ret = sg_alloc_table(&guard->sgt, src->orig_nents + 1, GFP_KERNEL);
+	if (ret)
+		goto err_free_pages;
+
+	dst = guard->sgt.sgl;
+	for_each_sg(src->sgl, sg, src->orig_nents, i) {
+		sg_set_page(dst, sg_page(sg), sg->length, sg->offset);
+		dst = sg_next(dst);
+	}
+	sg_set_page(dst, guard->page, guard->size, 0);
+
+	ret = dma_map_sgtable(ctx->dev->device, &guard->sgt, DMA_BIDIRECTIONAL, 0);
+	if (ret)
+		goto err_free_sgt;
+
+	guard->addr = sg_dma_address(guard->sgt.sgl);
+	buf->guard[plane] = guard;
+	buf->addr[0][plane] = guard->addr;
+
+	mfc_ctx_debug(2, "[HEVC_PAD] plane[%d] source IOVA: %#llx -> %#llx, guard: %zu\n",
+			plane, mfc_mem_get_daddr_vb(vb, plane), guard->addr, guard->size);
+
+	return 0;
+
+err_free_sgt:
+	sg_free_table(&guard->sgt);
+err_free_pages:
+	__free_pages(guard->page, get_order(guard->size));
+err_free_guard:
+	kfree(guard);
+	return ret;
+}
+
+static int mfc_enc_guard_source(struct mfc_ctx *ctx, struct vb2_buffer *vb)
+{
+	struct mfc_buf *buf = vb_to_mfc_buf(vb);
+	int i, ret;
+
+	if (!IS_HEVC_ENC(ctx) || vb->memory != V4L2_MEMORY_DMABUF ||
+			ctx->src_fmt->fourcc != V4L2_PIX_FMT_NV21M ||
+			ctx->src_fmt->mem_planes != 2 || ctx->multi_view_enable ||
+			ALIGN(ctx->img_height, 16) == ALIGN(ctx->img_height, 32))
+		return 0;
+
+	for (i = 0; i < ctx->src_fmt->mem_planes; i++) {
+		ret = mfc_enc_guard_map(ctx, vb, i);
+		if (ret)
+			goto err_unmap;
+	}
+
+	return 0;
+
+err_unmap:
+	while (--i >= 0)
+		mfc_enc_guard_unmap(ctx, buf, i);
+	return ret;
+}
+
 static int mfc_enc_buf_prepare(struct vb2_buffer *vb)
 {
 	struct vb2_queue *vq = vb->vb2_queue;
@@ -174,7 +289,7 @@ static int mfc_enc_buf_prepare(struct vb2_buffer *vb)
 	struct mfc_raw_info *raw;
 	unsigned int index = vb->index;
 	struct mfc_buf *buf = vb_to_mfc_buf(vb);
-	int i;
+	int i, ret;
 	size_t buf_size;
 
 	mfc_ctx_debug_enter();
@@ -221,6 +336,9 @@ static int mfc_enc_buf_prepare(struct vb2_buffer *vb)
 		}
 
 		mfc_calc_base_addr(ctx, vb, ctx->src_fmt);
+		ret = mfc_enc_guard_source(ctx, vb);
+		if (ret)
+			return ret;
 
 		call_cop(ctx, to_buf_ctrls, ctx, &ctx->src_ctrls[index]);
 
@@ -289,7 +407,9 @@ static void mfc_enc_buf_cleanup(struct vb2_buffer *vb)
 {
 	struct vb2_queue *vq = vb->vb2_queue;
 	struct mfc_ctx *ctx = vq->drv_priv;
+	struct mfc_buf *buf = vb_to_mfc_buf(vb);
 	unsigned int index = vb->index;
+	int i;
 
 	mfc_ctx_debug_enter();
 
@@ -301,6 +421,8 @@ static void mfc_enc_buf_cleanup(struct vb2_buffer *vb)
 		if (call_cop(ctx, cleanup_buf_ctrls, ctx,
 					MFC_CTRL_TYPE_SRC, index) < 0)
 			mfc_ctx_err("failed in cleanup_buf_ctrls\n");
+		for (i = 0; i < MFC_MAX_PLANES; i++)
+			mfc_enc_guard_unmap(ctx, buf, i);
 	} else {
 		mfc_ctx_err("mfc_enc_buf_cleanup: unknown queue type\n");
 	}
