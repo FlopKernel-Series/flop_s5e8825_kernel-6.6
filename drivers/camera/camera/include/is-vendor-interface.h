@@ -17,7 +17,7 @@
 #endif
 
 #if IS_ENABLED(CONFIG_LEDS_SM5714)
-#include "leds/sm5714.h"
+#include <linux/sm5714.h>
 #endif
 
 struct is_vendor_interface_ops {
