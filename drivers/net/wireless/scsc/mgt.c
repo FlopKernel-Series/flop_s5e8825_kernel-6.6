@@ -2053,7 +2053,8 @@ static int slsi_get_mib_entry_value(struct slsi_dev *sdev, struct slsi_mib_value
 
 	if (values[++mib_index].type != SLSI_MIB_TYPE_NONE) {
 		SLSI_CHECK_TYPE(sdev, values[mib_index].type, SLSI_MIB_TYPE_OCTET);
-		sdev->fw_ext_cap_ie_len = values[mib_index].u.octetValue.dataLength;
+		sdev->fw_ext_cap_ie_len = min_t(u32, values[mib_index].u.octetValue.dataLength,
+						sizeof(sdev->fw_ext_cap_ie));
 		memset(sdev->fw_ext_cap_ie, 0, sizeof(sdev->fw_ext_cap_ie));
 		memcpy(sdev->fw_ext_cap_ie, values[mib_index].u.octetValue.data,
 		       sdev->fw_ext_cap_ie_len);
@@ -3590,7 +3591,10 @@ int slsi_retry_connection(struct slsi_dev *sdev, struct net_device *dev)
 	int r = 0;
 	bool ap_found = false;
 	u8 device_address[ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-	const u8 slsi_extended_cap_mask[] = { 0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+	const u8 slsi_extended_cap_mask[] = {
+		0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF
+	};
 	u8 *probe_req_ies;
 	size_t probe_req_ie_len;
 
