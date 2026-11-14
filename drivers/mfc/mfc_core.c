@@ -175,13 +175,11 @@ int mfc_core_sysmmu_fault_handler(struct iommu_fault *fault, void *param)
 			core->id, fault->event.addr,
 			core->logging_data->fault_trans_info);
 
-	call_dop(core, dump_and_stop_always, core);
+	call_dop(core, dump_and_broadcast, core);
+	mfc_core_handle_error(core);
 
-	/*
-	 * if return 0, sysmmu occurs kernel panic for debugging
-	 * if -EAGAIN, sysmmu doesn't occur kernel panic (but need async-fault in dt).
-	 */
-	return 0;
+	/* The fault is handled; let SysMMU clear it without panicking. */
+	return -EAGAIN;
 }
 
 static int __mfc_core_parse_llcaid_sfr(struct mfc_core *core, unsigned int llcaid_idx)
