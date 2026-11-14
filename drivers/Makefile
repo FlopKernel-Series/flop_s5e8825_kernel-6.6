@@ -250,6 +250,7 @@ obj-y += usb/typec/common/
 obj-y += sti/abc/
 obj-y += mfd/slsi/s2mf301/
 obj-y += battery/charger/nu2111a_charger/
+obj-y += battery/charger/hl7132_charger/
 obj-y += nfc/
 obj-y += muic/slsi/s2mf301/
 obj-y += battery/fuelgauge/s2mf301_fuelgauge/
