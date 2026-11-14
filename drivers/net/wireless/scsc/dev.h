@@ -1586,7 +1586,7 @@ struct slsi_dev {
 	/* unset ARP queue after a timer */
 	struct delayed_work        unpause_arp_q_work;
 #endif
-	u8                         fw_ext_cap_ie[9]; /*extended capability IE length is 9 */
+	u8                         fw_ext_cap_ie[12]; /*extended capability IE length is 12 */
 	u32                        fw_ext_cap_ie_len;
 	struct slsi_spinlock       netdev_lock;
 	int                        home_time;
