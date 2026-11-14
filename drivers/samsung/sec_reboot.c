@@ -119,7 +119,7 @@ static unsigned int reboot_multicmd = 1;
 module_param_named(reboot_multicmd, reboot_multicmd, uint, 0444);
 
 /* PANIC INFORM */
-#define SEC_RESET_REASON_PREFIX		0x12345600
+#define SEC_RESET_REASON_PREFIX		0x12345670
 #define SEC_RESET_SET_PREFIX		0xabc00000
 #define SEC_RESET_MULTICMD_PREFIX	0xa5600000
 enum sec_reset_reason {
