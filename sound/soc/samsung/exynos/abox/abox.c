@@ -2751,9 +2751,11 @@ static int abox_ext_bin_request(struct device *dev,
 	mutex_lock(&efw->lock);
 
 	release_firmware(efw->firmware);
-	ret = request_firmware_direct(&efw->firmware, efw->name, dev);
+	ret = abox_request_firmware(&efw->firmware, efw->name, dev);
 	if (ret == -ENOENT)
 		abox_warn(dev, "%s doesn't exist\n", efw->name);
+	else if (ret == -EAGAIN)
+		abox_warn(dev, "%s is empty, will retry later\n", efw->name);
 	else if (ret < 0)
 		abox_err(dev, "%s request fail: %d\n", efw->name, ret);
 	else
@@ -2774,7 +2776,7 @@ static void abox_ext_bin_download(struct abox_data *data,
 	abox_dbg(dev, "%s\n", __func__);
 
 	mutex_lock(&efw->lock);
-	if (!efw->firmware)
+	if (!efw->firmware || !efw->firmware->size)
 		goto unlock;
 
 	switch (efw->area) {
@@ -3117,10 +3119,11 @@ static void abox_reload_extra_firmware(struct abox_data *data, const char *name)
 	}
 }
 
-static void abox_request_extra_firmware(struct abox_data *data)
+static bool abox_request_extra_firmware(struct abox_data *data)
 {
 	struct device *dev = data->dev;
 	struct abox_extra_firmware *efw;
+	bool complete = true;
 
 	abox_dbg(dev, "%s\n", __func__);
 
@@ -3128,8 +3131,11 @@ static void abox_request_extra_firmware(struct abox_data *data)
 		if (efw->firmware)
 			continue;
 
-		abox_ext_bin_request(dev, efw);
+		if (abox_ext_bin_request(dev, efw) == -EAGAIN)
+			complete = false;
 	}
+
+	return complete;
 }
 
 static void abox_download_extra_firmware(struct abox_data *data)
@@ -3141,7 +3147,7 @@ static void abox_download_extra_firmware(struct abox_data *data)
 
 	list_for_each_entry(efw, &data->firmware_extra, list) {
 		abox_ext_bin_download(data, efw);
-		if (efw->kcontrol)
+		if (efw->kcontrol && efw->firmware)
 			abox_register_void_component(data, efw->firmware->data);
 	}
 }
@@ -3210,14 +3216,16 @@ static int abox_download_firmware(struct device *dev)
 	int ret;
 
 	ret = abox_core_download_firmware();
+	if (ret == -EAGAIN) {
+		msleep(100);
+		ret = abox_core_download_firmware();
+	}
 	if (ret)
 		return ret;
 
 	/* Requesting missing extra firmware is waste of time. */
-	if (!requested) {
-		abox_request_extra_firmware(data);
-		requested = true;
-	}
+	if (!requested)
+		requested = abox_request_extra_firmware(data);
 	abox_download_extra_firmware(data);
 
 	return 0;

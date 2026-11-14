@@ -425,6 +425,12 @@ int abox_imgloader_mem_setup(struct imgloader_desc *desc, const u8 *metadata, si
 	if (!fw)
 		return -EINVAL;
 
+	if (!fw->firmware || fw->firmware->size < SZ_1K) {
+		abox_err(desc->dev, "%s: invalid firmware (%zu bytes)\n",
+				fw->name, fw->firmware ? fw->firmware->size : 0);
+		return -EINVAL;
+	}
+
 	switch (fw->area) {
 	default:
 		abox_err(desc->dev, "%s: unknown area(%d)\n", __func__,
@@ -514,9 +520,13 @@ static int abox_core_load_firmware(struct abox_core *core,
 	struct device *dev = core->dev;
 	int ret;
 
-	ret = request_firmware_direct(&fw->firmware, fw->name, core->dev);
-	if (ret >= 0)
+	ret = abox_request_firmware(&fw->firmware, fw->name, core->dev);
+	if (!ret) {
+		abox_info(dev, "%s is loaded\n", fw->name);
 		return 0;
+	}
+	if (ret == -EAGAIN)
+		abox_warn(dev, "%s is empty, will retry later\n", fw->name);
 
 	ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_UEVENT,
 			fw->name, dev, GFP_KERNEL, &fw->firmware,
@@ -552,9 +562,23 @@ int abox_core_download_firmware(void)
 
 			if (!fw->firmware) {
 				ret |= abox_core_load_firmware(core, fw);
-				if (ret < 0)
+				if (ret < 0) {
+					if (fw->firmware) {
+						release_firmware(fw->firmware);
+						fw->firmware = NULL;
+					}
 					continue;
+				}
 			}
+
+			if (!fw->firmware->size) {
+				abox_warn(dev, "%s is empty, will retry later\n", fw->name);
+				release_firmware(fw->firmware);
+				fw->firmware = NULL;
+				ret = -EAGAIN;
+				continue;
+			}
+
 			if (IS_ENABLED(CONFIG_EXYNOS_IMGLOADER)) {
 				if (fw->code_signed && fw->fw_imgloader_desc) {
 					ret |= imgloader_boot(fw->fw_imgloader_desc);
