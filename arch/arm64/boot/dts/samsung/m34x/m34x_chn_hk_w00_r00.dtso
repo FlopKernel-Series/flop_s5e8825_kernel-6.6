@@ -5451,7 +5451,7 @@
 			status = "okay";
 
 			dwc3 {
-				dr_mode = "peripheral";
+				dr_mode = "otg";
 				maximum-speed = "high-speed";
 			};
 		};
