@@ -205,6 +205,17 @@ extern int of_samsung_property_read_variable_u32_array(struct device *dev,
 extern int of_samsung_property_read_string(struct device *dev,
 		const struct device_node *np,
 		const char *propname, const char **out_string);
+
+/**
+ * request firmware and reject empty placeholder files
+ * @param[out]	firmware	pointer to firmware image
+ * @param[in]	name		name of firmware file
+ * @param[in]	dev		device for which firmware is being loaded
+ * @return	0, -EAGAIN for an empty image, or another error code
+ */
+extern int abox_request_firmware(const struct firmware **firmware,
+		const char *name, struct device *dev);
+
 /**
  * simple callback for request_firmware_nowait
  * @param[in]	fw		requested firmware
