@@ -21,6 +21,7 @@
  */
 
 #include <linux/mutex.h>
+#include <linux/usb/exynos_audio.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/pm_runtime.h>
@@ -692,10 +693,12 @@ static int dwc3_otg_start_host(struct otg_fsm *fsm, int on)
 #ifdef CONFIG_SND_EXYNOS_USB_AUDIO_GIC
 		__pm_relax(main_hcd_wakelock);
 		wakeup_source_unregister(main_hcd_wakelock);
+		main_hcd_wakelock = NULL;
 #endif
 #ifdef CONFIG_EXYNOS_USBDRD_PHY30
 		__pm_relax(shared_hcd_wakelock);
 		wakeup_source_unregister(shared_hcd_wakelock);
+		shared_hcd_wakelock = NULL;
 #endif
 		pr_info("%s: wakeup source unregister\n", __func__);
 
@@ -1646,8 +1649,10 @@ void dwc3_exynos_otg_exit(struct dwc3 *dwc, struct dwc3_exynos *exynos)
 void dwc3_exynos_otg_portsc_power_off(void __iomem * portsc, u32 on, u32 prt)
 {
 	struct xhci_hcd_exynos *xhci_exynos = g_xhci_exynos;
-
 	u32 reg;
+
+	if (exynos_usb_audio_use_legacy())
+		return;
 
 	spin_lock(&xhci_exynos->xhcioff_lock);
 

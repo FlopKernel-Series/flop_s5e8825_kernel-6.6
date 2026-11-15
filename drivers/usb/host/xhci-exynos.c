@@ -533,10 +533,6 @@ static const struct xhci_plat_priv xhci_plat_marvell_armada = {
 	.init_quirk = xhci_mvebu_mbus_init_quirk,
 };
 
-static const struct xhci_plat_priv xhci_plat_marvell_armada3700 = {
-	.init_quirk = xhci_mvebu_a3700_init_quirk,
-};
-
 static const struct of_device_id usb_xhci_of_match[] = {
 	{
 	 .compatible = "generic-xhci",
@@ -658,16 +654,32 @@ static int xhci_exynos_probe(struct platform_device *pdev)
 	int irq;
 
 	struct wakeup_source *main_wakelock, *shared_wakelock;
+	bool main_wakelock_registered = false;
+	bool shared_wakelock_registered = false;
 	int value;
 
 	dev_info(&pdev->dev, "XHCI PLAT START\n");
 
-	main_wakelock = wakeup_source_register(&pdev->dev, dev_name(&pdev->dev));
-	__pm_stay_awake(main_wakelock);
+	main_wakelock = main_hcd_wakelock;
+	if (!main_wakelock) {
+		main_wakelock = wakeup_source_register(&pdev->dev, dev_name(&pdev->dev));
+		if (main_wakelock) {
+			main_hcd_wakelock = main_wakelock;
+			main_wakelock_registered = true;
+			__pm_stay_awake(main_wakelock);
+		}
+	}
 
 	/* Initialization shared wakelock for SS HCD */
-	shared_wakelock = wakeup_source_register(&pdev->dev, dev_name(&pdev->dev));
-	__pm_stay_awake(shared_wakelock);
+	shared_wakelock = shared_hcd_wakelock;
+	if (!shared_wakelock) {
+		shared_wakelock = wakeup_source_register(&pdev->dev, dev_name(&pdev->dev));
+		if (shared_wakelock) {
+			shared_hcd_wakelock = shared_wakelock;
+			shared_wakelock_registered = true;
+			__pm_stay_awake(shared_wakelock);
+		}
+	}
 
 	is_rewa_enabled = 0;
 	usb_user_scenario = 0;
@@ -703,9 +715,9 @@ static int xhci_exynos_probe(struct platform_device *pdev)
 	/* Try to set 64-bit DMA first */
 	if (WARN_ON(!sysdev->dma_mask))
 		/* Platform did not initialize dma_mask */
-		ret = dma_coerce_mask_and_coherent(sysdev, DMA_BIT_MASK(64));
+		ret = dma_coerce_mask_and_coherent(sysdev, DMA_BIT_MASK(36));
 	else
-		ret = dma_set_mask_and_coherent(sysdev, DMA_BIT_MASK(64));
+		ret = dma_set_mask_and_coherent(sysdev, DMA_BIT_MASK(36));
 
 	/* If seting 64-bit DMA mask fails, fall back to 32-bit DMA mask */
 	if (ret) {
@@ -765,6 +777,8 @@ static int xhci_exynos_probe(struct platform_device *pdev)
 		xhci_exynos->port_set_delayed = 0;
 	}
 
+	xhci_exynos->main_wakelock = main_wakelock;
+	xhci_exynos->shared_wakelock = shared_wakelock;
 	main_hcd_wakelock = main_wakelock;
 	shared_hcd_wakelock = shared_wakelock;
 
@@ -866,6 +880,10 @@ static int xhci_exynos_probe(struct platform_device *pdev)
 
 	if (parent) {
 		/* pdev describes dwc3->xhci */
+		ret = xhci_exynos_audio_alloc(parent);
+		if (ret)
+			goto put_usb3_hcd;
+
 		ret = xhci_exynos_audio_init(parent, pdev);
 		if (ret == XHCI_USE_URAM) {
 			xhci->quirks |= XHCI_USE_URAM_FOR_EXYNOS_AUDIO;
@@ -948,12 +966,16 @@ static int xhci_exynos_probe(struct platform_device *pdev)
 	pm_runtime_put_noidle(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 
-	if (main_wakelock) {
+	if (main_wakelock_registered) {
 		wakeup_source_unregister(main_wakelock);
+		if (main_hcd_wakelock == main_wakelock)
+			main_hcd_wakelock = NULL;
 		pr_err("%s: unregister main_wakelock", __func__);
 	}
-	if (shared_wakelock) {
+	if (shared_wakelock_registered) {
 		wakeup_source_unregister(shared_wakelock);
+		if (shared_hcd_wakelock == shared_wakelock)
+			shared_hcd_wakelock = NULL;
 		pr_err("%s: unregister shared_wakelock", __func__);
 	}
 
@@ -987,9 +1009,13 @@ static int xhci_exynos_remove(struct platform_device *dev)
 	xhci_exynos->usb3_portsc = NULL;
 	xhci_exynos->port_set_delayed = 0;
 
-	__pm_relax(main_hcd_wakelock);
+	if (main_hcd_wakelock &&
+	    main_hcd_wakelock == xhci_exynos->main_wakelock)
+		__pm_relax(xhci_exynos->main_wakelock);
 
-	__pm_relax(shared_hcd_wakelock);
+	if (shared_hcd_wakelock &&
+	    shared_hcd_wakelock == xhci_exynos->shared_wakelock)
+		__pm_relax(xhci_exynos->shared_wakelock);
 
 	xhci_exynos_unregister_notify();
 
@@ -1024,9 +1050,20 @@ static int xhci_exynos_remove(struct platform_device *dev)
 	xhci->shared_hcd = NULL;
 	usb_phy_shutdown(hcd->usb_phy);
 	usb_remove_hcd(hcd);
+	xhci_exynos_vendor_cleanup(xhci);
 
-	wakeup_source_unregister(main_hcd_wakelock);
-	wakeup_source_unregister(shared_hcd_wakelock);
+	if (xhci_exynos->main_wakelock &&
+	    main_hcd_wakelock == xhci_exynos->main_wakelock) {
+		wakeup_source_unregister(xhci_exynos->main_wakelock);
+		main_hcd_wakelock = NULL;
+	}
+	if (xhci_exynos->shared_wakelock &&
+	    shared_hcd_wakelock == xhci_exynos->shared_wakelock) {
+		wakeup_source_unregister(xhci_exynos->shared_wakelock);
+		shared_hcd_wakelock = NULL;
+	}
+	xhci_exynos->main_wakelock = NULL;
+	xhci_exynos->shared_wakelock = NULL;
 
 	devm_iounmap(&dev->dev, hcd->regs);
 	usb_put_hcd(shared_hcd);
@@ -1039,7 +1076,6 @@ static int xhci_exynos_remove(struct platform_device *dev)
 	pm_runtime_put_noidle(&dev->dev);
 	pm_runtime_set_suspended(&dev->dev);
 
-	//xhci_exynos_vendor_cleanup(xhci);
 	g_xhci_exynos_audio->ir->ir_set = NULL;
 	g_xhci_exynos = NULL;
 

@@ -202,6 +202,15 @@ config SND_EXYNOS_USB_AUDIO_MODULE
 	help
 	 Say Y here to include support for Exynos USB Audio ABOX offloading.
 
+config SND_EXYNOS_USB_AUDIO_LEGACY
+	bool "Use legacy Exynos USB audio firmware interface"
+	depends on SND_EXYNOS_USB_AUDIO_MODULE
+	depends on USB_XHCI_EXYNOS
+	help
+	 Select the legacy ABOX mailbox and URAM xHCI interface used by older
+	 Calliope firmware. Leave this disabled for the newer xHCI sideband
+	 interface. Both host drivers can remain built in either configuration.
+
 endif	# SND_USB
 
 endif	# SND_USB

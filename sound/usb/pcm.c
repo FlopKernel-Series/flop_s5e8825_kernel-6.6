@@ -701,6 +701,10 @@ static int snd_usb_pcm_prepare(struct snd_pcm_substream *substream)
 		snd_usb_set_format_quirk(subs, subs->cur_audiofmt);
 	ret = 0;
 
+	ret = snd_usb_platform_pcm_prepare(subs);
+	if (ret < 0)
+		goto unlock;
+
 	/* reset the pointer */
 	subs->buffer_bytes = frames_to_bytes(runtime, runtime->buffer_size);
 	subs->inflight_bytes = 0;
@@ -1243,6 +1247,10 @@ static int snd_usb_pcm_open(struct snd_pcm_substream *substream)
 	struct snd_usb_substream *subs = &as->substream[direction];
 	int ret;
 
+	ret = snd_usb_platform_pcm_open(subs);
+	if (ret)
+		return ret;
+
 	runtime->hw = snd_usb_hardware;
 	/* need an explicit sync to catch applptr update in low-latency mode */
 	if (direction == SNDRV_PCM_STREAM_PLAYBACK &&
@@ -1275,6 +1283,10 @@ static int snd_usb_pcm_close(struct snd_pcm_substream *substream)
 	struct snd_usb_stream *as = snd_pcm_substream_chip(substream);
 	struct snd_usb_substream *subs = &as->substream[direction];
 	int ret;
+
+	ret = snd_usb_platform_pcm_close(subs);
+	if (ret)
+		return ret;
 
 	snd_media_stop_pipeline(subs);
 
