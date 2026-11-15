@@ -118,6 +118,14 @@
 #define MAX_SSID_LEN 100
 #define SLSI_MAX_NUM_RING 10
 
+struct slsi_lls_peer_info_legacy {
+	enum slsi_lls_peer_type type;         /* peer type (AP, TDLS, GO etc.)*/
+	u8 peer_mac_address[6];               /* mac address*/
+	u32 capabilities;                     /* peer WIFI_CAPABILITY_XXX*/
+	u32 num_rate;                         /* number of rates*/
+	struct slsi_lls_rate_stat rate_stats[]; /* per rate statistics, number of entries  = num_rate*/
+};
+
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
@@ -2472,9 +2480,15 @@ static int slsi_lls_fill(struct slsi_dev *sdev, u8 **src_buf)
 	struct slsi_lls_radio_stat *radio_stat;
 	struct slsi_lls_radio_stat *radio_stat_temp;
 	struct slsi_lls_iface_stat *iface_stat;
+	struct slsi_lls_peer_info_legacy *legacy_peer_info;
+	struct slsi_lls_peer_info *peer_info;
 	int                        buf_len = 0;
 	int                        max_chan_count = 0;
+	int                        radio_block_len;
+	int                        num_peers;
 	u8                         *buf;
+	u8                         *new_radio_start;
+	u8                         *old_radio_start;
 	int                        num_of_radios_supported;
 	int i = 0;
 	int radio_type[2] = {BIT(0), BIT(1)};
@@ -2520,6 +2534,29 @@ static int slsi_lls_fill(struct slsi_dev *sdev, u8 **src_buf)
 					     sizeof(struct slsi_lls_radio_stat) + (sizeof(struct slsi_lls_channel_stat)
 					     * radio_stat->num_channels));
 		}
+	}
+
+	radio_block_len = (int)((u8 *)radio_stat - (u8 *)radio_stat_temp);
+	buf_len = (int)((u8 *)radio_stat - buf);
+
+	if (iface_stat->num_peers) {
+		num_peers = iface_stat->num_peers;
+		peer_info = iface_stat->peer_info;
+		legacy_peer_info = (struct slsi_lls_peer_info_legacy *)peer_info;
+
+		for (i = 0; i < num_peers; i++) {
+			legacy_peer_info[i].type = peer_info[i].type;
+			SLSI_ETHER_COPY(legacy_peer_info[i].peer_mac_address, peer_info[i].peer_mac_address);
+			legacy_peer_info[i].capabilities = peer_info[i].capabilities;
+			legacy_peer_info[i].num_rate = peer_info[i].num_rate;
+		}
+
+		new_radio_start = (u8 *)radio_stat_temp;
+		old_radio_start = (u8 *)legacy_peer_info +
+				  (sizeof(struct slsi_lls_peer_info_legacy) * num_peers);
+		memmove(old_radio_start, new_radio_start, radio_block_len);
+		radio_stat_temp = (struct slsi_lls_radio_stat *)old_radio_start;
+		buf_len = (int)(old_radio_start - buf + radio_block_len);
 	}
 #ifdef CONFIG_SCSC_WLAN_DEBUG
 	if (slsi_dev_llslogs_supported())
