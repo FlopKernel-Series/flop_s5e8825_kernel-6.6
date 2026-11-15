@@ -38,7 +38,7 @@ fi
 
 # aosp, aosp-r510928, proton, lolz, slim, greenforce, zyc, rv, custom
 if [ -z "$CLANG_TYPE" ]; then
-    export CLANG_TYPE="aosp-r510928"
+    export CLANG_TYPE="aosp"
 else
     log_info "Overriding default toolchain"
 fi
