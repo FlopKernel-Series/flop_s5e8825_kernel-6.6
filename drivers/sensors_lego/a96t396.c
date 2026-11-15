@@ -3379,7 +3379,6 @@ static int a96t396_parse_dt(struct a96t396_data *data, struct device *dev)
 	struct device_node *np = dev->of_node;
 	struct pinctrl *p;
 	int ret = 0;
-	enum of_gpio_flags flags;
 
 	data->grip_int = of_get_named_gpio(np, "irq_gpio", 0);
 	if (data->grip_int < 0) {
@@ -3387,7 +3386,7 @@ static int a96t396_parse_dt(struct a96t396_data *data, struct device *dev)
 		return data->grip_int;
 	}
 
-	data->ldo_en = of_get_named_gpio_flags(np, "ldo_en", 0, &flags);
+	data->ldo_en = of_get_named_gpio(np, "ldo_en", 0);
 	if (data->ldo_en < 0) {
 		GRIP_INFO("set ldo_en 0\n");
 		data->ldo_en = 0;
@@ -3957,8 +3956,12 @@ static void a96t396_init_work_func(struct work_struct *work)
 #endif
 #endif
 
+#if (KERNEL_VERSION(6, 3, 0) <= LINUX_VERSION_CODE)
+static int a96t396_probe(struct i2c_client *client)
+#else
 static int a96t396_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
+#endif
 {
 	struct a96t396_data *data;
 	struct input_dev *input_dev;
