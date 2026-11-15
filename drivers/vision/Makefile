@@ -67,7 +67,7 @@ obj-$(CONFIG_NPU_GOLDEN_MATCH)	        += npu/core/npu-util-comparator.o
 obj-$(CONFIG_FIRMWARE_SRAM_DUMP_DEBUGFS)	        += npu/core/npu-util-memdump.o
 
 obj-$(CONFIG_NPU_SCHEDULER_GOVERNOR)	+= npu/core/npu-scheduler.o\
-					npu/core/ npu-scheduler-governor.o
+					npu/core/npu-scheduler-governor.o
 
 obj-$(CONFIG_NPU_GOVERNOR_SIMPLE_EXYNOS)	+= npu/core/npu-scheduler-governor-simple-exynos.o
 
