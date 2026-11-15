@@ -8,6 +8,5 @@ common_muic-y	:= muic-core.o muic_notifier.o muic_param.o
 common_muic-$(CONFIG_MUIC_COMMON_SYSFS) += muic_sysfs.o
 
 ifeq ($(CONFIG_SEC_KUNIT), y)
-obj-$(CONFIG_SEC_KUNIT) += kunit_test/
 GCOV_PROFILE_muic-core.o := $(CONFIG_SEC_KUNIT)
 endif
