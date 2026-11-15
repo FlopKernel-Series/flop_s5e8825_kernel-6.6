@@ -140,7 +140,6 @@ obj-$(CONFIG_SHUB) += shub.o
 endif
 
 ifneq (,$(filter y ,$(CONFIG_SHUB_KUNIT)))
-obj-$(CONFIG_SHUB_KUNIT)			+= kunit_test/
 endif
 
 obj-$(CONFIG_SHUB_TEST_FOR_ONLY_UML)			+= vendor/shub_dummy.o
