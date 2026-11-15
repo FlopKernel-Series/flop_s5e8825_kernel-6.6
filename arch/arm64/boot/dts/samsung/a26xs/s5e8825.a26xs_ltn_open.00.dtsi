@@ -13,6 +13,7 @@
 #include "s5e8825-a26xs_pm_00.dtsi"
 #include "camera/s5e8825-a26x-camera_00.dtsi"
 
+#undef BOARD_ID
 #define BOARD_ID	0x1
 #define BOARD_REV	0x0
 
