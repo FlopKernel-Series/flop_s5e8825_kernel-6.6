@@ -261,6 +261,7 @@ obj-y += sensors_lego/
 obj-y += battery/charger/s2mf301_charger/
 obj-y += battery/common/
 obj-y += samsung/
+obj-y += battery/charger/sm5451_charger/
 obj-y += battery/charger/sm5714_charger/
 obj-y += battery/fuelgauge/sm5714_fuelgauge/
 obj-y += muic/sm/sm5714/
