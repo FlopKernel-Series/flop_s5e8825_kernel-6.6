@@ -11,6 +11,7 @@
  */
 
 /* #define BATTERY_LOG_MESSAGE */
+#include <linux/version.h>
 #include "sm5714_fuelgauge.h"
 #include <linux/of_gpio.h>
 #include <linux/debugfs.h>
@@ -38,7 +39,7 @@ static char *sm5714_fg_supplied_to[] = {
 #define FG_REG_CHECK_TABLE_LEN 11
 #endif
 
-#define SM5714_FUELGAUGE_VERSION  "WF1"
+#define SM5714_FUELGAUGE_VERSION  "WG1"
 
 /* void sm5714_adabt_full_offset(struct sm5714_fuelgauge_data *fuelgauge); */
 static bool sm5714_fg_init(struct sm5714_fuelgauge_data *fuelgauge, bool is_surge);
@@ -48,6 +49,8 @@ static int sm5714_device_id = -1;
 #if !defined(CONFIG_SEC_FACTORY)
 static int sm5714_fg_debug_print;
 #endif
+
+static int is_probe_running;
 
 static unsigned int __read_mostly lpcharge;
 module_param(lpcharge, uint, 0444);
@@ -183,7 +186,12 @@ static void sm5714_dump_all(struct sm5714_fuelgauge_data *fuelgauge)
 	int val;
 	int i;
 	int r_size = (int)ARRAY_SIZE(sm5714_srams)/4;
-	char temp_buf[660] = {0,};
+	char *temp_buf = NULL;
+	size_t temp_size = sizeof(char) * 1024;
+
+	temp_buf = kzalloc(temp_size, GFP_KERNEL);
+	if (!temp_buf)
+		return;
 
 	switch (sm5714_fg_debug_print%5) {
 	case 0:
@@ -193,7 +201,7 @@ static void sm5714_dump_all(struct sm5714_fuelgauge_data *fuelgauge)
 			sprintf(temp_buf+strlen(temp_buf), "%02x:%04x,", sm5714_regs[i], val);
 		}
 		pr_info("[sm5714_fg_all_regs] %s\n", temp_buf);
-		memset(temp_buf, 0x0, sizeof(temp_buf));
+		memset(temp_buf, 0x0, temp_size);
 		sm5714_fg_debug_print++;
 		break;
 	case 1:
@@ -203,7 +211,7 @@ static void sm5714_dump_all(struct sm5714_fuelgauge_data *fuelgauge)
 			sprintf(temp_buf+strlen(temp_buf), "%02x:%04x,", sm5714_srams[i], val);
 		}
 		pr_info("[sm5714_fg_all_srams_1] %s\n", temp_buf);
-		memset(temp_buf, 0x0, sizeof(temp_buf));
+		memset(temp_buf, 0x0, temp_size);
 		sm5714_fg_debug_print++;
 		break;
 	case 2:
@@ -213,7 +221,7 @@ static void sm5714_dump_all(struct sm5714_fuelgauge_data *fuelgauge)
 			sprintf(temp_buf+strlen(temp_buf), "%02x:%04x,", sm5714_srams[i], val);
 		}
 		pr_info("[sm5714_fg_all_srams_2] %s\n", temp_buf);
-		memset(temp_buf, 0x0, sizeof(temp_buf));
+		memset(temp_buf, 0x0, temp_size);
 		sm5714_fg_debug_print++;
 		break;
 	case 3:
@@ -223,7 +231,7 @@ static void sm5714_dump_all(struct sm5714_fuelgauge_data *fuelgauge)
 			sprintf(temp_buf+strlen(temp_buf), "%02x:%04x,", sm5714_srams[i], val);
 		}
 		pr_info("[sm5714_fg_all_srams_3] %s\n", temp_buf);
-		memset(temp_buf, 0x0, sizeof(temp_buf));
+		memset(temp_buf, 0x0, temp_size);
 		sm5714_fg_debug_print++;
 		break;
 	case 4:
@@ -233,12 +241,11 @@ static void sm5714_dump_all(struct sm5714_fuelgauge_data *fuelgauge)
 			sprintf(temp_buf+strlen(temp_buf), "%02x:%04x,", sm5714_srams[i], val);
 		}
 		pr_info("[sm5714_fg_all_srams_4] %s\n", temp_buf);
-		memset(temp_buf, 0x0, sizeof(temp_buf));
+		memset(temp_buf, 0x0, temp_size);
 		sm5714_fg_debug_print = 0;
 		break;
-
-
 	}
+	kfree(temp_buf);
 }
 #else
 static void sm5714_fg_reg_dump(struct sm5714_fuelgauge_data *fuelgauge)
@@ -338,8 +345,13 @@ static unsigned int sm5714_get_vbat(struct sm5714_fuelgauge_data *fuelgauge)
 			pr_info("%s : nENQ4 high JIG_ON, return VBAT_REG 0x%x, VSYS_REG 0x%x\n", __func__,
 				ret1, sm5714_fg_read_sram(fuelgauge, SM5714_FG_ADDR_SRAM_VSYS));
 	} else if (sm5714_get_facmode()) {
-		vbat = sm5714_fg_read_sram(fuelgauge, SM5714_FG_ADDR_SRAM_VSYS);
-		pr_info("%s : nENQ4 low but factory_mode, VBAT_REG 0x%x, return VSYS_REG 0x%x\n", __func__, ret1, vbat);
+		if (fuelgauge->jigvbatmode && fuelgauge->isjigmoderealvbat) {
+				vbat = sm5714_fg_read_sram(fuelgauge, SM5714_FG_ADDR_SRAM_VBAT);
+				pr_info("%s : nENQ4 low but factory_mode, jigvbatmode(%d),return VBAT_REG 0x%x\n", __func__, fuelgauge->jigvbatmode, vbat);
+		} else {
+			vbat = sm5714_fg_read_sram(fuelgauge, SM5714_FG_ADDR_SRAM_VSYS);
+			pr_info("%s : nENQ4 low but factory_mode, VBAT_REG 0x%x, return VSYS_REG 0x%x\n", __func__, ret1, vbat);
+		}
 		ret1 = vbat;
 	}
 
@@ -1216,7 +1228,10 @@ unsigned int sm5714_get_soc(struct sm5714_fuelgauge_data *fuelgauge)
 		ret = sm5714_fg_read_sram(fuelgauge, SM5714_FG_ADDR_SRAM_SOC);
 		if (ret < 0) {
 			pr_err("%s: Warning!!!! read soc reg fail\n", __func__);
-			soc = 500;
+			if (is_probe_running)
+				soc = 500;
+			else
+				soc = fuelgauge->info.batt_soc;
 		} else {
 			soc = (ret * 10) >> 8;
 			if (ret > 0x63ff) {
@@ -1333,11 +1348,19 @@ static int sm5714_fg_set_jig_mode_real_vbat(struct sm5714_fuelgauge_data *fuelga
 	/** meas_mode = 0 is inbat mode with jig **/
 	if (meas_mode == 0)	{
 		stat = sm5714_read_word(fuelgauge->i2c, SM5714_FG_REG_SYSTEM_STATUS);
-		if (stat & 0x8000) {
+		if (fuelgauge->jigvbatmode) {
 			fuelgauge->isjigmoderealvbat = true;
-			pr_info("%s: FG check jig_ON!! and after read real VBAT!!\n", __func__);
-		} else
-			pr_info("%s: isjigmoderealvbat = 1 but FG check nENQ4 LOW!! check jig!!\n", __func__);
+			if (stat & 0x8000)
+				pr_info("%s: FG check jig_ON!! and after read real VBAT!!\n", __func__);
+			else
+				pr_info("%s: isjigmoderealvbat = 1 but FG check nENQ4 LOW!! and after read real VBAT!!\n", __func__);
+		} else {
+			if (stat & 0x8000) {
+				fuelgauge->isjigmoderealvbat = true;
+				pr_info("%s: FG check jig_ON!! and after read real VBAT!!\n", __func__);
+			} else
+				pr_info("%s: isjigmoderealvbat = 1 but FG check nENQ4 LOW!! check jig!!\n", __func__);
+		}
 	} else
 		pr_info("%s: meas_mode = 1, isjigmoderealvbat = false!!\n", __func__);
 
@@ -1726,7 +1749,7 @@ static void sm5714_fg_calculate_dynamic_scale(
 }
 
 	if (capacity == 100)
-		scaling_factor = 2;
+		scaling_factor = fuelgauge->pdata->scaling_factor;
 
 	fuelgauge->capacity_max = (raw_soc_val.intval * 100 / (capacity + scaling_factor));
 	fuelgauge->capacity_old = capacity;
@@ -1980,7 +2003,7 @@ static int sm5714_fg_get_property(struct power_supply *psy,
 			sm5714_fg_adjust_capacity_max(fuelgauge, val->intval);
 			sm5714_fg_get_scaled_capacity(fuelgauge, val);
 
-			if (val->intval > 1020) {
+			if (val->intval > (1000 + (fuelgauge->pdata->scaling_factor * 10))) {
 				pr_info("%s: scaled capacity (%d)\n", __func__, val->intval);
 				sm5714_fg_calculate_dynamic_scale(fuelgauge, 100, false);
 			}
@@ -2460,6 +2483,12 @@ static int sm5714_fuelgauge_parse_dt(struct sm5714_fuelgauge_data *fuelgauge)
 		if (ret < 0)
 			pr_err("%s error reading capacity_min %d\n", __func__, ret);
 
+		ret = of_property_read_u32(np, "fuelgauge,scaling_factor",
+				&fuelgauge->pdata->scaling_factor);
+		if (ret < 0){
+			pr_err("%s error reading scaling_factor %d\n", __func__, ret);
+			fuelgauge->pdata->scaling_factor = 2;
+		}
 		pr_info("%s: capacity_max: %d, capacity_min: %d, capacity_max_margin: %d\n",
 			__func__, fuelgauge->pdata->capacity_max, fuelgauge->pdata->capacity_min,
 			fuelgauge->pdata->capacity_max_margin);
@@ -2575,6 +2604,9 @@ static int sm5714_fuelgauge_parse_dt(struct sm5714_fuelgauge_data *fuelgauge)
 			pr_err("%s error reading fg_resistor %d\n",
 					__func__, ret);
 			fuelgauge->fg_resistor = 1;
+
+		fuelgauge->jigvbatmode = of_property_read_bool(np,
+									"fuelgauge,jigvbatmode");
 		}
 
 
@@ -2596,7 +2628,7 @@ static int sm5714_fuelgauge_parse_dt(struct sm5714_fuelgauge_data *fuelgauge)
 		}
 	}
 
-	pdata->bat_gpio_cnt = of_gpio_named_count(np, "fuelgauge,bat_id_gpio");
+	pdata->bat_gpio_cnt = sb_of_gpio_named_count(np, "fuelgauge,bat_id_gpio");
 	/* not run if gpio gpio cnt is less than 1 */
 	if (pdata->bat_gpio_cnt > 0) {
 		pr_info("%s: Has %d bat_id_gpios\n", __func__, pdata->bat_gpio_cnt);
@@ -3055,8 +3087,10 @@ static int sm5714_fuelgauge_probe(struct platform_device *pdev)
 		goto err_data_free;
 	}
 
+	is_probe_running = 1;
 	fuelgauge->capacity_max = fuelgauge->pdata->capacity_max;
 	raw_soc_val.intval = sm5714_get_soc(fuelgauge);
+	is_probe_running = 0;
 
 #if defined(CONFIG_DISABLE_SAVE_CAPACITY_MAX)
 	pr_info("%s : CONFIG_DISABLE_SAVE_CAPACITY_MAX\n",
@@ -3143,7 +3177,11 @@ err_free:
 	return ret;
 }
 
+#if KERNEL_VERSION(6, 11, 0) > LINUX_VERSION_CODE
 static int sm5714_fuelgauge_remove(struct platform_device *pdev)
+#else
+static void sm5714_fuelgauge_remove(struct platform_device *pdev)
+#endif
 {
 	struct sm5714_fuelgauge_data *fuelgauge =
 		platform_get_drvdata(pdev);
@@ -3157,7 +3195,9 @@ static int sm5714_fuelgauge_remove(struct platform_device *pdev)
 
 	kfree(fuelgauge);
 
+#if KERNEL_VERSION(6, 11, 0) > LINUX_VERSION_CODE
 	return 0;
+#endif
 }
 
 static int sm5714_fuelgauge_suspend(struct device *dev)
