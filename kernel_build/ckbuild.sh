@@ -17,8 +17,38 @@ set -e
 # Disable colors via NO_COLOR=1 or CKBUILD_NO_COLOR=1 (also auto-disabled when stdout isn't a TTY).
 source "$(pwd)/kernel_build/lib/log.sh"
 
+# Parse device argument
+if [ -z "$1" ]; then
+    echo -e "\n$(log_err "Please specify device to build!")\n"
+    exit 1
+fi
+
+TARGET_DEVICE="$1"
+shift
+
+case "$TARGET_DEVICE" in
+    a25x)
+        DEFAULT_DEFCONFIG="a25x_defconfig"
+        DEVICE="Galaxy A25 5G"
+        CODENAME="a25x"
+        ;;
+    m34x)
+        DEFAULT_DEFCONFIG="m34x_defconfig"
+        DEVICE="Galaxy M34 5G"
+        CODENAME="m34x"
+        ;;
+    *)
+        echo -e "\n$(log_err "Unknown device: $TARGET_DEVICE")\n"
+        exit 1
+        ;;
+esac
+
+if [ ! -f "arch/arm64/configs/$DEFAULT_DEFCONFIG" ]; then
+    echo -e "\n$(log_err "Defconfig not found for $TARGET_DEVICE: $DEFAULT_DEFCONFIG")\n"
+    exit 1
+fi
+
 # Other
-DEFAULT_DEFCONFIG="a25x_defconfig"
 KERNEL_URL="https://github.com/FlopKernel-Series/flop_s5e8825_kernel"
 AK3_URL="https://github.com/FlopKernel-Series/AnyKernel3-s5e8825"
 AK3_TEST=0
@@ -90,10 +120,6 @@ FK_VER="v1.0.0"
 USE_CCACHE=1
 DO_TAR=1
 DO_ZIP=1
-
-## Info message
-DEVICE="Galaxy A25 5G"
-CODENAME="a25x"
 
 ## Secrets
 if [ -f "../chat_ci" ] && [ -f "../bot_token" ]; then
