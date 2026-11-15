@@ -47,7 +47,6 @@ ufs-exynos-core-$(CONFIG_SCSI_UFS_DBG) += ufs-exynos-dbg.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_EXYNOS_SRPMB) += ufs-exynos-srpmb.o
 ufs-exynos-core-$(CONFIG_SCSI_UFS_EXYNOS_FMP) += ufs-exynos-fmp.o
 
-
 # drivers/ufs/host/Makefile
 obj-$(CONFIG_SEC_UFS_FEATURE) += ufs-sec-driver.o
 ufs-sec-driver-$(CONFIG_SEC_UFS_FEATURE) += ufs-sec-misc.o
