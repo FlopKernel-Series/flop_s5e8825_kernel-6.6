@@ -24,8 +24,9 @@
 #include <linux/completion.h>
 #include <linux/iommu.h>
 #include <linux/phy/phy.h>
-
+#include <linux/usb/exynos_audio.h>
 #include <soc/samsung/exynos-smc.h>
+
 #include <sound/pcm.h>
 #include <sound/control.h>
 #include <trace/hooks/usb.h>
@@ -37,6 +38,10 @@
 #include "power.h"
 
 #include "../../drivers/usb/host/xhci.h"
+#if IS_ENABLED(CONFIG_USB_XHCI_EXYNOS)
+#include "../../drivers/usb/host/xhci-exynos-audio.h"
+extern struct xhci_exynos_audio *g_xhci_exynos_audio;
+#endif
 
 #if IS_ENABLED(CONFIG_SEC_USB_CB)
 #include <linux/usb/sec_usb_cb.h>
@@ -48,9 +53,7 @@
 #define PARAM3 0xc
 #define PARAM4 0x10
 #define RESPONSE 0x20
-
 #define USB_IPC_IRQ	4
-
 #define SUBSTREAM_FLAG_DATA_EP_STARTED	0
 #define SUBSTREAM_FLAG_SYNC_EP_STARTED	1
 
@@ -61,9 +64,10 @@ static struct exynos_usb_audio usb_audio;
 static struct snd_usb_platform_ops platform_ops;
 static int exynos_usb_audio_unmap_all(void);
 static void exynos_usb_audio_offload_init(void);
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 static void exynos_usb_audio_offload_store_sideband_info(struct usb_device *udev);
-#else
+#endif
+#if IS_ENABLED(CONFIG_USB_XHCI_EXYNOS) && (IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY) || !IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND))
 static void exynos_usb_audio_offload_store_hw_info(void);
 #endif
 void exynos_usb_xhci_recover(void);
@@ -86,7 +90,8 @@ EXPORT_SYMBOL_GPL(exynos_main_hcd);
 struct usb_hcd *exynos_shared_hcd;
 EXPORT_SYMBOL_GPL(exynos_shared_hcd);
 
-struct xhci_exynos_audio {
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+struct xhci_sideband_audio {
 	struct phy *phy;
 	struct usb_hcd *hcd;
 	dma_addr_t save_dma;
@@ -101,7 +106,8 @@ struct xhci_exynos_audio {
 	struct xhci_interrupter *ir;
 };
 
-static struct xhci_exynos_audio *g_xhci_exynos_audio;
+static struct xhci_sideband_audio *g_xhci_sideband_audio;
+#endif
 
 static void __iomem *base_addr;
 static struct usb_audio_msg usb_msg;
@@ -127,6 +133,33 @@ MODULE_DEVICE_TABLE(of, exynos_usb_audio_match);
 
 static inline u32 upper_32b(u64 dma) { return upper_32_bits(le64_to_cpu(dma)); }
 static inline u32 lower_32b(u64 dma) { return lower_32_bits(le64_to_cpu(dma)); }
+
+static int usb_msg_to_abox(void)
+{
+	ABOX_IPC_MSG msg = {0};
+	struct IPC_ERAP_MSG *erap_msg = &msg.msg.erap;
+	struct ERAP_USB_AUDIO_PARAM *erap_usb = &erap_msg->param.usbaudio;
+	int sync = 0;
+	int ret;
+
+	mutex_lock(&usb_audio.msg_lock);
+	msg.ipcid = IPC_ERAP;
+	erap_msg->msgtype = REALTIME_USB;
+	erap_usb->type = usb_msg.type;
+	erap_usb->param1 = usb_msg.param1;
+	erap_usb->param2 = usb_msg.param2;
+	erap_usb->param3 = usb_msg.param3;
+	erap_usb->param4 = usb_msg.param4;
+
+	if (usb_msg.type == GIC_USB_CONN && !usb_msg.param1)
+		sync = 1;
+
+	ret = abox_request_ipc(&usb_audio.abox->dev, IPC_ERAP, &msg,
+			sizeof(msg), 0, sync);
+
+	mutex_unlock(&usb_audio.msg_lock);
+	return ret;
+}
 
 static int gicd_xwritel(struct usb_audio_gic_data *data, u32 value,
 							unsigned int offset)
@@ -197,12 +230,23 @@ static int usb_msg_to_uram(struct device *dev)
 	return ret;
 }
 
+static int usb_msg_to_firmware(void)
+{
+	if (exynos_usb_audio_use_legacy())
+		return usb_msg_to_abox();
+
+	return usb_msg_to_uram(&usb_audio.abox->dev);
+}
+
 static int usb_audio_iommu_map(unsigned long iova, phys_addr_t addr,
 		size_t bytes)
 {
-	int ret = 0;
+	int ret;
 
-	ret = iommu_map(iommu_domain, iova, addr, bytes, 0, GFP_KERNEL);
+	if (exynos_usb_audio_use_legacy())
+		ret = abox_iommu_map(&usb_audio.abox->dev, iova, addr, bytes, NULL);
+	else
+		ret = iommu_map(iommu_domain, iova, addr, bytes, 0, GFP_KERNEL);
 	if (ret < 0)
 		pr_info("iommu_map(%#lx) fail: %d\n", iova, ret);
 
@@ -213,16 +257,19 @@ static int usb_audio_iommu_map(unsigned long iova, phys_addr_t addr,
 
 static int usb_audio_iommu_unmap(unsigned long iova, size_t bytes)
 {
-	int ret = 0;
+	int ret;
 
-	ret = iommu_unmap(iommu_domain, iova, bytes);
+	if (exynos_usb_audio_use_legacy())
+		ret = abox_iommu_unmap(&usb_audio.abox->dev, iova);
+	else
+		ret = iommu_unmap(iommu_domain, iova, bytes);
 	if (ret < 0)
 		pr_info("iommu_unmap(%#lx) fail: %d\n", iova, ret);
 
 	return ret;
 }
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 static int xhci_exynos_enable_interrupt(struct xhci_sideband *sb, u32 imod_interval)
 {
 	if (!sb || !sb->ir)
@@ -263,7 +310,7 @@ static int exynos_usb_audio_set_device(struct usb_device *udev)
 	usb_audio.udev = udev;
 	usb_audio.is_audio = 1;
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	usb_audio.sb = xhci_sideband_register(udev);
 	if (!usb_audio.sb) {
 		usb_audio.is_audio = 0;
@@ -319,7 +366,9 @@ static int exynos_usb_audio_hcd(struct usb_device *udev)
 	struct hcd_hw_info *hwinfo = g_hwinfo;
 	int ret = 0;
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	exynos_usb_audio_offload_store_hw_info();
+#elif IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
 	exynos_usb_audio_offload_store_sideband_info(udev);
 #else
 	exynos_usb_audio_offload_store_hw_info();
@@ -422,7 +471,7 @@ static int exynos_usb_audio_hcd(struct usb_device *udev)
 	usb_msg.param3 = lower_32_bits(le64_to_cpu(hwinfo->erst_addr));
 	usb_msg.param4 = upper_32_bits(le64_to_cpu(hwinfo->erst_addr));
 
-	ret = usb_msg_to_uram(dev);
+	ret = usb_msg_to_firmware();
 	if (ret) {
 		dev_err(&usb_audio.udev->dev, "erap usb hcd control failed\n");
 		goto err;
@@ -498,7 +547,7 @@ static int exynos_usb_audio_desc(struct usb_device *udev)
 		dev_info(&udev->dev, "paddr : %#08llx / offset : %#08llx / len : %d / speed : %d\n",
 							desc_addr + offset, offset, len, usb_audio.speed);
 
-	ret = usb_msg_to_uram(&udev->dev);
+	ret = usb_msg_to_firmware();
 	if (ret) {
 		dev_err(&usb_audio.udev->dev, "erap usb desc control failed\n");
 		goto err;
@@ -532,7 +581,10 @@ static int exynos_usb_audio_conn(struct usb_device *udev)
 	atomic_set(&usb_audio.fb_indeq_map_done, 0);
 	atomic_set(&usb_audio.fb_outdeq_map_done, 0);
 	atomic_set(&usb_audio.pcm_open_done, 0);
-	ret = usb_msg_to_uram(&udev->dev);
+	reinit_completion(&usb_audio.in_conn_stop);
+	reinit_completion(&usb_audio.out_conn_stop);
+	reinit_completion(&usb_audio.discon_done);
+	ret = usb_msg_to_firmware();
 	if (ret) {
 		pr_err("erap usb conn control failed\n");
 		goto err;
@@ -547,6 +599,8 @@ err:
 
 static int exynos_usb_audio_disconn(void)
 {
+	struct device *dev = &usb_audio.abox->dev;
+	unsigned long left_time;
 	int ret = 0;
 
 	if (DEBUG)
@@ -565,12 +619,15 @@ static int exynos_usb_audio_disconn(void)
 	} else {
 		usb_audio.is_audio = 0;
 		usb_audio.usb_audio_state = USB_AUDIO_REMOVING;
-		ret = usb_msg_to_uram(&usb_audio.phy->dev);
+		ret = usb_msg_to_firmware();
 		if (ret) {
 			pr_err("erap usb dis_conn control failed\n");
 			goto err;
 		}
-		exynos_usb_audio_unmap_all();
+		left_time = wait_for_completion_timeout(&usb_audio.out_conn_stop,
+				msecs_to_jiffies(200));
+		if (!left_time)
+			dev_info(dev, "%s: DISCONNECTION timeout\n", __func__);
 	}
 
 err:
@@ -622,7 +679,7 @@ static int exynos_usb_audio_pcm(bool is_open, bool direction)
 
 	if (is_open)
 		abox_request_power_autosuspend(dev, 0x7008, "USBOPEN");
-	ret = usb_msg_to_uram(dev);
+	ret = usb_msg_to_firmware();
 	mutex_unlock(&usb_audio.lock);
 	if (ret) {
 		dev_err(&usb_audio.udev->dev, "ERAP USB PCM control failed\n");
@@ -794,6 +851,54 @@ int exynos_usb_vendor_helper_init(void)
 	return ret;
 }
 
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+static void exynos_usb_audio_work(struct work_struct *w)
+{
+	pr_info("%s\n", __func__);
+
+	if (usb_audio.usb_audio_state != USB_AUDIO_REMOVING) {
+		pr_info("%s, not removing state\n", __func__);
+		return;
+	}
+
+	exynos_usb_audio_unmap_all();
+	usb_audio.usb_audio_state = USB_AUDIO_DISCONNECT;
+	complete(&usb_audio.discon_done);
+}
+
+static irqreturn_t exynos_usb_audio_irq_handler(int irq, void *dev_id,
+		ABOX_IPC_MSG *msg)
+{
+	struct IPC_ERAP_MSG *erap_msg = &msg->msg.erap;
+	struct ERAP_USB_AUDIO_PARAM *erap_usb = &erap_msg->param.usbaudio;
+
+	if (irq != IPC_ERAP || erap_msg->msgtype != REALTIME_USB)
+		return IRQ_HANDLED;
+
+	switch (erap_usb->type) {
+	case IPC_USB_TASK:
+		if (!erap_usb->param1 &&
+				usb_audio.usb_audio_state == USB_AUDIO_REMOVING)
+			schedule_work(&usb_audio.usb_work);
+		break;
+	case IPC_USB_STOP_DONE:
+		if (erap_usb->param1 == SNDRV_PCM_STREAM_PLAYBACK)
+			complete(&usb_audio.out_conn_stop);
+		else if (erap_usb->param1 == SNDRV_PCM_STREAM_CAPTURE)
+			complete(&usb_audio.in_conn_stop);
+		else
+			pr_err("Unexpected USB_STOP_DONE param\n");
+		break;
+	default:
+		pr_err("%s: unknown USB message type %d\n", __func__,
+				erap_usb->type);
+		break;
+	}
+
+	return IRQ_HANDLED;
+}
+#endif
+
 static int exynos_usb_audio_unmap_all(void)
 {
 	struct platform_device *pdev = usb_audio.abox;
@@ -950,7 +1055,7 @@ int exynos_usb_audio_pcmbuf(struct usb_device *udev)
 				usb_msg.param4, usb_msg.param3);
 	}
 
-	ret = usb_msg_to_uram(dev);
+	ret = usb_msg_to_firmware();
 	mutex_unlock(&usb_audio.lock);
 
 	if (ret) {
@@ -961,7 +1066,7 @@ int exynos_usb_audio_pcmbuf(struct usb_device *udev)
 	return 0;
 }
 
-static unsigned int xhci_exynos_get_endpoint_address(unsigned int ep_index)
+static unsigned int exynos_usb_audio_get_endpoint_address(unsigned int ep_index)
 {
 	unsigned int number = DIV_ROUND_UP(ep_index, 2);
 	unsigned int direction = ep_index % 2 ? USB_DIR_OUT : USB_DIR_IN;
@@ -982,12 +1087,15 @@ void exynos_usb_audio_get_deq(struct usb_device *udev, int interface, int altern
 	int fb_out_change = 0;
 	int fb_in_change = 0;
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	xhci = g_xhci_exynos_audio->xhci;
+	virt_dev = xhci->devs[usb_audio.udev->slot_id];
+#elif IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
 	xhci = usb_audio.sb->xhci;
 	virt_dev = usb_audio.sb->vdev;
 #else
-       xhci = g_xhci_exynos_audio->xhci;
-       virt_dev = xhci->devs[usb_audio.udev->slot_id];
+	xhci = g_xhci_exynos_audio->xhci;
+	virt_dev = xhci->devs[usb_audio.udev->slot_id];
 #endif
 
 	config = udev->actconfig;
@@ -998,7 +1106,7 @@ void exynos_usb_audio_get_deq(struct usb_device *udev, int interface, int altern
 		host_ep = &(alt->endpoint[i]);
 		desc = &(host_ep->desc);
 		ep_index = xhci_get_endpoint_index(desc);
-		ep_addr = xhci_exynos_get_endpoint_address(ep_index);
+		ep_addr = exynos_usb_audio_get_endpoint_address(ep_index);
 		ep_ctx = xhci_get_ep_ctx(xhci, virt_dev->out_ctx, ep_index);
 
 		pr_debug("%s: bmAttributes = %x\n", __func__, desc->bmAttributes);
@@ -1006,7 +1114,8 @@ void exynos_usb_audio_get_deq(struct usb_device *udev, int interface, int altern
 		pr_debug("%s: bEndpointAddress = %x\n", __func__, desc->bEndpointAddress);
 		pr_debug("%s: bSynchAddress = %x\n", __func__, desc->bSynchAddress);
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && \
+		!IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 		xhci_sideband_add_endpoint(usb_audio.sb, host_ep);
 		pr_info("%s xhci_sideband_add_endpoint ep_index: %d\n", __func__, ep_index);
 #endif
@@ -1138,7 +1247,7 @@ int exynos_usb_audio_setintf(struct usb_device *udev, int iface, int alt, int di
 			if (atomic_read(&usb_audio.indeq_map_done)) {
 				/* Blocking SYSMMU Fault by ABOX */
 				usb_msg.param1 = 0;
-				ret = usb_msg_to_uram(dev);
+				ret = usb_msg_to_firmware();
 				if (ret) {
 					dev_err(&usb_audio.udev->dev, "erap usb hcd control failed\n");
 					goto err;
@@ -1169,7 +1278,7 @@ int exynos_usb_audio_setintf(struct usb_device *udev, int iface, int alt, int di
 				if (atomic_read(&usb_audio.fb_outdeq_map_done)) {
 					/* Blocking SYSMMU Fault by ABOX */
 					usb_msg.param1 = 0;
-					ret = usb_msg_to_uram(dev);
+					ret = usb_msg_to_firmware();
 					if (ret) {
 						dev_err(&usb_audio.udev->dev, "erap usb hcd control failed\n");
 						goto err;
@@ -1207,7 +1316,7 @@ int exynos_usb_audio_setintf(struct usb_device *udev, int iface, int alt, int di
 			if (atomic_read(&usb_audio.outdeq_map_done)) {
 				/* Blocking SYSMMU Fault by ABOX */
 				usb_msg.param1 = 0;
-				ret = usb_msg_to_uram(dev);
+				ret = usb_msg_to_firmware();
 				if (ret) {
 					dev_err(&usb_audio.udev->dev, "erap usb hcd control failed\n");
 					goto err;
@@ -1239,7 +1348,7 @@ int exynos_usb_audio_setintf(struct usb_device *udev, int iface, int alt, int di
 				if (atomic_read(&usb_audio.fb_indeq_map_done)) {
 					/* Blocking SYSMMU Fault by ABOX */
 					usb_msg.param1 = 0;
-					ret = usb_msg_to_uram(dev);
+					ret = usb_msg_to_firmware();
 					if (ret) {
 						dev_err(&usb_audio.udev->dev, "erap usb hcd control failed\n");
 						goto err;
@@ -1276,7 +1385,7 @@ int exynos_usb_audio_setintf(struct usb_device *udev, int iface, int alt, int di
 		goto err;
 	}
 
-	ret = usb_msg_to_uram(dev);
+	ret = usb_msg_to_firmware();
 	if (ret) {
 		dev_err(&usb_audio.udev->dev, "erap usb hcd control failed\n");
 		goto err;
@@ -1321,6 +1430,52 @@ static int exynos_pcm_open_ctl_get(struct snd_kcontrol *kcontrol,
 #define SND_PCM_DEV_NUM_MASK 0xff00
 #define SND_PCM_STREAM_DIRECTION 0xff
 
+static int exynos_usb_audio_pcm_open(struct snd_usb_substream *subs)
+{
+	int ret;
+
+	ret = exynos_usb_audio_pcm(true, subs->direction);
+	if (ret)
+		return ret;
+
+	set_bit(SUBSTREAM_FLAG_DATA_EP_STARTED, &subs->flags);
+	set_bit(SUBSTREAM_FLAG_SYNC_EP_STARTED, &subs->flags);
+
+	return 0;
+}
+
+static int exynos_usb_audio_pcm_close(struct snd_usb_substream *subs)
+{
+	if (subs->direction == SNDRV_PCM_STREAM_PLAYBACK)
+		reinit_completion(&usb_audio.out_conn_stop);
+	else
+		reinit_completion(&usb_audio.in_conn_stop);
+
+	if (atomic_read(&usb_audio.pcm_open_done) == 0)
+		return 0;
+
+	return exynos_usb_audio_pcm(false, subs->direction);
+}
+
+static int exynos_usb_audio_pcm_prepare(struct snd_usb_substream *subs)
+{
+	struct snd_usb_endpoint *ep = subs->data_endpoint;
+	struct usb_device *udev = subs->dev;
+	int ret;
+
+	ret = exynos_usb_audio_pcmbuf(udev);
+	if (ret)
+		return ret;
+
+	ret = exynos_usb_audio_setintf(udev, ep->iface, ep->altsetting,
+			subs->direction);
+	if (ret)
+		return ret;
+
+	return exynos_usb_audio_set_rate(ep->cur_audiofmt->iface, ep->cur_rate,
+			ep->cur_audiofmt->altsetting);
+}
+
 static int exynos_pcm_open_ctl_put(struct snd_kcontrol *kcontrol,
 			 struct snd_ctl_elem_value *ucontrol)
 {
@@ -1364,18 +1519,15 @@ static int exynos_pcm_open_ctl_put(struct snd_kcontrol *kcontrol,
 	}
 
 	if (onoff == 1) {
-		exynos_usb_audio_pcm(1, dir);
+		exynos_usb_audio_pcm_open(subs);
 	} else if (onoff == 0) {
 		if (atomic_read(&usb_audio.pcm_open_done) == 0) {
 			pr_info("%s : pcm node was not opened!\n", __func__);
 			return 0;
 		}
-		exynos_usb_audio_pcm(0, dir);
+		exynos_usb_audio_pcm_close(subs);
 	}
 	changed = 1;
-
-	set_bit(SUBSTREAM_FLAG_DATA_EP_STARTED, &subs->flags);
-	set_bit(SUBSTREAM_FLAG_SYNC_EP_STARTED, &subs->flags);
 
 open_failed:
 	return changed;
@@ -1406,8 +1558,6 @@ static int exynos_pcm_prepare_ctl_put(struct snd_kcontrol *kcontrol,
 	struct exynos_usb_audio *usb = snd_kcontrol_chip(kcontrol);
 	struct snd_usb_stream *as;
 	struct snd_usb_substream *subs = NULL;
-	//struct usb_interface *usb_iface;
-	struct usb_device *udev;
 	int changed = 0;
 	u32 value, pcm_idx, dir, onoff;
 	int ret = 0;
@@ -1448,13 +1598,7 @@ static int exynos_pcm_prepare_ctl_put(struct snd_kcontrol *kcontrol,
 		goto prepare_failed;
 	}
 
-	udev = subs->dev;
-
-	exynos_usb_audio_pcmbuf(udev);
-	exynos_usb_audio_setintf(udev, subs->data_endpoint->iface, \
-			subs->data_endpoint->altsetting, subs->direction);
-	ret = exynos_usb_audio_set_rate(subs->data_endpoint->cur_audiofmt->iface,\
-			subs->data_endpoint->cur_rate, subs->data_endpoint->cur_audiofmt->altsetting);
+	ret = exynos_usb_audio_pcm_prepare(subs);
 	changed = 1;
 
 prepare_failed:
@@ -1546,7 +1690,7 @@ static int exynos_usb_add_ctls(struct snd_usb_audio *chip,
 	return 0;
 }
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 void exynos_usb_audio_offload_store_sideband_info(struct usb_device *udev)
 {
 	struct xhci_sideband *sb = usb_audio.sb;
@@ -1557,22 +1701,25 @@ void exynos_usb_audio_offload_store_sideband_info(struct usb_device *udev)
 	//virt_dev = xhci->devs[usb_audio.udev->slot_id];
 
 	g_hwinfo->dcbaa_dma = xhci->dcbaa->dma;
-	g_hwinfo->save_dma = g_xhci_exynos_audio->save_dma;
+	g_hwinfo->save_dma = g_xhci_sideband_audio->save_dma;
 	//g_hwinfo->cmd_ring = xhci->op_regs->cmd_ring;
 	g_hwinfo->slot_id = usb_audio.udev->slot_id;
-	g_hwinfo->in_dma = g_xhci_exynos_audio->in_dma;
-	g_hwinfo->in_buf = g_xhci_exynos_audio->in_addr;
-	g_hwinfo->out_dma = g_xhci_exynos_audio->out_dma;
-	g_hwinfo->out_buf = g_xhci_exynos_audio->out_addr;
+	g_hwinfo->in_dma = g_xhci_sideband_audio->in_dma;
+	g_hwinfo->in_buf = g_xhci_sideband_audio->in_addr;
+	g_hwinfo->out_dma = g_xhci_sideband_audio->out_dma;
+	g_hwinfo->out_buf = g_xhci_sideband_audio->out_addr;
 	g_hwinfo->in_ctx = virt_dev->in_ctx->dma;
 	g_hwinfo->out_ctx = virt_dev->out_ctx->dma;
 	g_hwinfo->erst_addr = entry->seg_addr;
 	g_hwinfo->speed = usb_audio.udev->speed;
+	g_hwinfo->rawdesc_length = 0x100;
 	g_hwinfo->phy = usb_audio.phy;
 
 	pr_info("<<< %s\n", __func__);
 }
-#else
+#endif
+
+#if IS_ENABLED(CONFIG_USB_XHCI_EXYNOS) && (IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY) || !IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND))
 static void exynos_usb_audio_offload_store_hw_info(void)
 {
 	struct xhci_hcd *xhci = g_xhci_exynos_audio->xhci;
@@ -1596,6 +1743,7 @@ static void exynos_usb_audio_offload_store_hw_info(void)
 	g_hwinfo->out_ctx = virt_dev->out_ctx->dma;
 	g_hwinfo->erst_addr = entry->seg_addr;
 	g_hwinfo->speed = usb_audio.udev->speed;
+	g_hwinfo->rawdesc_length = 0x100;
 	g_hwinfo->phy = g_xhci_exynos_audio->phy;
 
 	if (xhci->quirks & XHCI_USE_URAM_FOR_EXYNOS_AUDIO)
@@ -1621,47 +1769,53 @@ void usb_probe_work(void)
 	audio_work_data.sysmmu_mapping_done = 1;
 }
 
-static int xhci_exynos_audio_alloc(struct device *parent)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+static int xhci_sideband_audio_alloc(struct device *parent)
 {
 	dma_addr_t	dma;
 
 	dev_info(parent, "%s\n", __func__);
 
-	g_xhci_exynos_audio = devm_kzalloc(parent, sizeof(struct xhci_exynos_audio), GFP_KERNEL);
-	memset(g_xhci_exynos_audio, 0, sizeof(struct xhci_exynos_audio));
+	g_xhci_sideband_audio = devm_kzalloc(parent, sizeof(struct xhci_sideband_audio), GFP_KERNEL);
+	memset(g_xhci_sideband_audio, 0, sizeof(struct xhci_sideband_audio));
 
-	g_xhci_exynos_audio->save_addr = dma_alloc_coherent(parent,
+	g_xhci_sideband_audio->save_addr = dma_alloc_coherent(parent,
 			USB_AUDIO_PAGE_SIZE, &dma, GFP_KERNEL);
-	g_xhci_exynos_audio->save_dma = dma;
+	g_xhci_sideband_audio->save_dma = dma;
 	dev_info(parent, "// Save address = 0x%llx (DMA), %p (virt)",
-		  (unsigned long long)g_xhci_exynos_audio->save_dma, g_xhci_exynos_audio->save_addr);
+		  (unsigned long long)g_xhci_sideband_audio->save_dma, g_xhci_sideband_audio->save_addr);
 
 	/* In data buf alloc */
-	g_xhci_exynos_audio->in_addr = dma_alloc_coherent(parent,
+	g_xhci_sideband_audio->in_addr = dma_alloc_coherent(parent,
 			(USB_AUDIO_PAGE_SIZE * 256), &dma, GFP_KERNEL);
-	g_xhci_exynos_audio->in_dma = dma;
+	g_xhci_sideband_audio->in_dma = dma;
 	dev_info(parent, "// IN Data address = 0x%llx (DMA), %p (virt)",
-		(unsigned long long)g_xhci_exynos_audio->in_dma, g_xhci_exynos_audio->in_addr);
+		(unsigned long long)g_xhci_sideband_audio->in_dma, g_xhci_sideband_audio->in_addr);
 
 	/* Out data buf alloc */
-	g_xhci_exynos_audio->out_addr = dma_alloc_coherent(parent,
+	g_xhci_sideband_audio->out_addr = dma_alloc_coherent(parent,
 			(USB_AUDIO_PAGE_SIZE * 256), &dma, GFP_KERNEL);
-	g_xhci_exynos_audio->out_dma = dma;
+	g_xhci_sideband_audio->out_dma = dma;
 	dev_info(parent, "// OUT Data address = 0x%llx (DMA), %p (virt)",
-		(unsigned long long)g_xhci_exynos_audio->out_dma, g_xhci_exynos_audio->out_addr);
+		(unsigned long long)g_xhci_sideband_audio->out_dma, g_xhci_sideband_audio->out_addr);
 
 	return 0;
 }
+#endif
 
 int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
 	struct device_node *np_abox;
+#if !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	struct device_node *np_tmp;
+#endif
 	struct platform_device *pdev_abox;
+#if !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	struct platform_device *pdev_tmp;
 	struct device	*dev_gic;
+#endif
 	int	err = 0;
 	int value;
 
@@ -1688,6 +1842,7 @@ int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 		goto probe_failed;
 	}
 
+#if !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	np_tmp = of_parse_phandle(np, "samsung,abox-gic", 0);
 	if (!np_tmp) {
 		dev_err(dev, "Failed to get abox-gic device node\n");
@@ -1699,6 +1854,7 @@ int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 		dev_err(dev, "Failed to get abox-gic platform device\n");
 		goto probe_failed;
 	}
+#endif
 
 	if (!of_property_read_u32(dev->of_node, "low_power_call", &value)) {
 		usb_audio.low_power_call = value ? true : false;
@@ -1708,6 +1864,7 @@ int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 		usb_audio.low_power_call = false;
 	}
 
+#if !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	base_addr = ioremap(EXYNOS_URAM_ABOX_EMPTY_ADDR, EMPTY_SIZE);
 	if (!base_addr) {
 		dev_err(dev, "URAM ioremap failed\n");
@@ -1716,6 +1873,7 @@ int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 
 	dev_gic = &pdev_tmp->dev;
 	gic_data = dev_get_drvdata(dev_gic);
+#endif
 
 	/* Get USB2.0 PHY for main hcd */
 	usb_audio.phy = devm_phy_get(dev, "usb2-phy");
@@ -1726,9 +1884,19 @@ int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 
 	mutex_init(&usb_audio.lock);
 	mutex_init(&usb_audio.msg_lock);
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	init_completion(&usb_audio.in_conn_stop);
+	init_completion(&usb_audio.out_conn_stop);
+	init_completion(&usb_audio.discon_done);
+	INIT_WORK(&usb_audio.usb_work, exynos_usb_audio_work);
+#endif
 
 	usb_audio.hcd_pdev = pdev;
 	usb_audio.abox = pdev_abox;
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	abox_register_ipc_handler(&pdev_abox->dev, IPC_ERAP,
+			exynos_usb_audio_irq_handler, NULL);
+#endif
 
 	//exynos_usb_audio_offload_init();
 	usb_audio.usb_audio_state = USB_AUDIO_DISCONNECT;
@@ -1742,7 +1910,9 @@ int exynos_usb_audio_offload_probe(struct platform_device *pdev)
 	memset(g_hwinfo, 0, sizeof(struct hcd_hw_info));
 
 	snd_usb_register_platform_ops(&platform_ops);
-	xhci_exynos_audio_alloc(usb_audio.dev);
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	xhci_sideband_audio_alloc(usb_audio.dev);
+#endif
 
 	return 0;
 
@@ -1865,9 +2035,12 @@ void exynos_usb_audio_connect(struct snd_usb_audio *chip)
 
 void exynos_usb_audio_disconnect(struct snd_usb_audio *chip)
 {
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && !IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	struct xhci_hcd *xhci;
 	struct xhci_virt_device *virt_dev;
+#endif
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	unsigned long left_time;
 #endif
 	int ret;
 
@@ -1876,7 +2049,8 @@ void exynos_usb_audio_disconnect(struct snd_usb_audio *chip)
 	usb_audio.user_scenario = AUDIO_MODE_NORMAL;
 	phy_set_mode_ext(usb_audio.phy, PHY_MODE_CALL_EXIT, AUDIO_MODE_NORMAL);
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && \
+		!IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	if (usb_audio.sb) {
 		ret = xhci_exynos_disable_interrupter(usb_audio.sb);
 		if (ret < 0)
@@ -1887,7 +2061,23 @@ void exynos_usb_audio_disconnect(struct snd_usb_audio *chip)
 	if (ret < 0)
 		pr_info("%s: return ERR %d\n", __func__, ret);
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	if (usb_audio.usb_audio_state == USB_AUDIO_REMOVING) {
+		left_time = wait_for_completion_timeout(&usb_audio.discon_done,
+				msecs_to_jiffies(DISCONNECT_TIMEOUT));
+		if (!left_time) {
+			pr_err("%s: timeout for disconnect\n", __func__);
+			cancel_work_sync(&usb_audio.usb_work);
+			if (usb_audio.usb_audio_state == USB_AUDIO_REMOVING) {
+				exynos_usb_audio_unmap_all();
+				usb_audio.usb_audio_state = USB_AUDIO_DISCONNECT;
+			}
+		}
+	}
+#endif
+
+#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND) && \
+		!IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
 	if (usb_audio.sb) {
 		xhci = usb_audio.sb->xhci;
 		virt_dev = usb_audio.sb->vdev;
@@ -1928,7 +2118,7 @@ int exynos_usb_audio_set_rate(int iface, int rate, int alt)
 	usb_msg.param2 = rate;
 	usb_msg.param3 = alt;
 
-	ret = usb_msg_to_uram(dev);
+	ret = usb_msg_to_firmware();
 	mutex_unlock(&usb_audio.lock);
 	if (ret) {
 		dev_err(&usb_audio.udev->dev, "erap usb transfer sample rate is failed\n");
@@ -1999,6 +2189,11 @@ void exynos_usb_xhci_recover(void)
 static struct snd_usb_platform_ops platform_ops = {
 	.connect_cb = exynos_usb_audio_connect,
 	.disconnect_cb = exynos_usb_audio_disconnect,
+#if IS_ENABLED(CONFIG_SND_EXYNOS_USB_AUDIO_LEGACY)
+	.open_cb = exynos_usb_audio_pcm_open,
+	.close_cb = exynos_usb_audio_pcm_close,
+	.prepare_cb = exynos_usb_audio_pcm_prepare,
+#endif
 };
 
 static int exynos_usb_audio_probe(struct platform_device *pdev)

@@ -45,6 +45,8 @@ struct xhci_hcd_exynos {
 	struct device *dev;
 	struct usb_hcd *hcd;
 	struct usb_hcd *shared_hcd;
+	struct wakeup_source *main_wakelock;
+	struct wakeup_source *shared_wakelock;
 
 	void __iomem *usb3_portsc;
 	spinlock_t xhcioff_lock;

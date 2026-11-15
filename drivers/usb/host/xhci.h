@@ -1713,7 +1713,7 @@ struct xhci_hcd {
 
 	void			*dbc;
 
-	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_USE(1, struct xhci_vendor_ops *vendor_ops);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);
@@ -1737,6 +1737,8 @@ struct xhci_driver_overrides {
 			    struct usb_tt *tt, gfp_t mem_flags);
 	int (*hub_control)(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			   u16 wIndex, char *buf, u16 wLength);
+	int (*bus_suspend)(struct usb_hcd *hcd);
+	int (*bus_resume)(struct usb_hcd *hcd);
 
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
@@ -1955,6 +1957,10 @@ int xhci_set_interrupter_moderation(struct xhci_interrupter *ir,
 					   u32 imod_interval);
 
 /* xHCI ring, segment, TRB, and TD functions */
+void xhci_segment_free(struct xhci_hcd *xhci, struct xhci_segment *seg);
+void xhci_link_segments(struct xhci_segment *prev, struct xhci_segment *next,
+			enum xhci_ring_type type, bool chain_links);
+void xhci_remove_stream_mapping(struct xhci_ring *ring);
 dma_addr_t xhci_trb_virt_to_dma(struct xhci_segment *seg, union xhci_trb *trb);
 struct xhci_segment *trb_in_td(struct xhci_hcd *xhci,
 		struct xhci_segment *start_seg, union xhci_trb *start_trb,
@@ -2620,5 +2626,31 @@ static inline const char *xhci_decode_ep_context(char *str, u32 info,
 
 	return str;
 }
+
+struct xhci_vendor_ops {
+	int (*vendor_init)(struct xhci_hcd *xhci);
+	void (*vendor_cleanup)(struct xhci_hcd *xhci);
+	bool (*is_usb_offload_enabled)(struct xhci_hcd *xhci,
+				       struct xhci_virt_device *vdev,
+				       unsigned int ep_index);
+	struct xhci_device_context_array *(*alloc_dcbaa)(struct xhci_hcd *xhci,
+							 gfp_t flags);
+	void (*free_dcbaa)(struct xhci_hcd *xhci);
+	struct xhci_ring *(*alloc_transfer_ring)(struct xhci_hcd *xhci,
+						 u32 endpoint_type, enum xhci_ring_type ring_type,
+						 unsigned int max_packet, gfp_t mem_flags);
+	void (*free_transfer_ring)(struct xhci_hcd *xhci,
+				   struct xhci_virt_device *virt_dev, unsigned int ep_index);
+	void (*alloc_container_ctx)(struct xhci_hcd *xhci,
+				    struct xhci_container_ctx *ctx, int type, gfp_t flags);
+	void (*free_container_ctx)(struct xhci_hcd *xhci,
+				   struct xhci_container_ctx *ctx);
+};
+
+struct xhci_vendor_ops *xhci_vendor_get_ops(struct xhci_hcd *xhci);
+bool xhci_vendor_is_usb_offload_enabled(struct xhci_hcd *xhci,
+		struct xhci_virt_device *virt_dev, unsigned int ep_index);
+void xhci_vendor_free_transfer_ring(struct xhci_hcd *xhci,
+		struct xhci_virt_device *virt_dev, unsigned int ep_index);
 
 #endif /* __LINUX_XHCI_HCD_H */

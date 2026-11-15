@@ -155,6 +155,30 @@ int snd_usb_unregister_platform_ops(void)
 }
 EXPORT_SYMBOL_GPL(snd_usb_unregister_platform_ops);
 
+int snd_usb_platform_pcm_open(struct snd_usb_substream *subs)
+{
+	if (platform_ops && platform_ops->open_cb)
+		return platform_ops->open_cb(subs);
+
+	return 0;
+}
+
+int snd_usb_platform_pcm_close(struct snd_usb_substream *subs)
+{
+	if (platform_ops && platform_ops->close_cb)
+		return platform_ops->close_cb(subs);
+
+	return 0;
+}
+
+int snd_usb_platform_pcm_prepare(struct snd_usb_substream *subs)
+{
+	if (platform_ops && platform_ops->prepare_cb)
+		return platform_ops->prepare_cb(subs);
+
+	return 0;
+}
+
 /*
  * disconnect streams
  * called from usb_audio_disconnect()
