@@ -143,6 +143,17 @@ static void vts_soc_complete_fw_request(
 		return;
 	}
 
+	if (data->firmware) {
+		release_firmware(fw);
+		return;
+	}
+
+	if (fw->size < SZ_1K) {
+		vts_dev_err(dev, "Invalid firmware (%zu bytes)\n", fw->size);
+		release_firmware(fw);
+		return;
+	}
+
 	data->firmware = fw;
 	pversion = (unsigned int *) (fw->data + VTSFW_VERSION_OFFSET);
 	/* data->vtsfw_version = *pversion; */
@@ -150,6 +161,30 @@ static void vts_soc_complete_fw_request(
 	/* data->vtsdetectlib_version = *pversion; */
 
 	vts_dev_info(dev, "firmware loaded at %p (%zu)\n", fw->data, fw->size);
+}
+
+static int vts_request_firmware(struct device *dev, const char *fw_name)
+{
+	const struct firmware *fw = NULL;
+	int ret;
+
+	ret = request_firmware_direct(&fw, fw_name, dev);
+	if (ret < 0 || !fw || fw->size < SZ_1K) {
+		release_firmware(fw);
+		fw = NULL;
+		ret = request_firmware(&fw, fw_name, dev);
+	}
+	if (ret < 0) {
+		release_firmware(fw);
+		return ret;
+	}
+	if (!fw || fw->size < SZ_1K) {
+		release_firmware(fw);
+		return -EAGAIN;
+	}
+
+	vts_soc_complete_fw_request(fw, dev);
+	return 0;
 }
 
 int vts_soc_runtime_resume(struct device *dev)
@@ -263,18 +298,11 @@ int vts_soc_runtime_resume(struct device *dev)
 		writel(0x03FF0000, data->intmem_data1 + 0x4);
 
 	if (!data->firmware) {
-		vts_dev_info(dev, "%s : request_firmware_direct\n",
-			__func__);
-		ret = request_firmware_direct(
-			(const struct firmware **)&data->firmware,
-			"vts.bin", dev);
-
+		ret = vts_request_firmware(dev, "vts.bin");
 		if (ret < 0) {
-			vts_dev_err(dev, "request_firmware_direct failed\n");
+			vts_dev_err(dev, "Failed to load firmware: %d\n", ret);
 			return ret;
 		}
-		vts_dev_info(dev, "vts_soc_complete_fw_request : OK\n");
-		vts_soc_complete_fw_request(data->firmware, dev);
 	}
 
 	return ret;
@@ -324,16 +352,14 @@ int vts_soc_cmpnt_probe(struct device *dev)
 	vts_dev_info(dev, "%s\n", __func__);
 
 	if (!data->firmware) {
-		vts_dev_info(dev, "%s : request_firmware_direct\n", __func__);
-		ret = request_firmware_direct(
-			(const struct firmware **)&data->firmware,
-			"vts.bin", dev);
-
+		ret = vts_request_firmware(dev, "vts.bin");
 		if (ret < 0) {
-			vts_dev_err(dev, "Failed to request_firmware_nowait\n");
-		} else {
-			vts_dev_info(dev, "vts_soc_complete_fw_request : OK\n");
-			vts_soc_complete_fw_request(data->firmware, dev);
+			ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_UEVENT,
+					"vts.bin", dev, GFP_KERNEL, dev,
+					vts_soc_complete_fw_request);
+			if (ret < 0)
+				vts_dev_err(dev, "Failed to request firmware: %d\n",
+						ret);
 		}
 	}
 
