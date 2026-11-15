@@ -8,7 +8,6 @@ usb_typec_manager-$(CONFIG_USB_HW_PARAM)	+= usb_typec_manager_hwparam.o
 
 ifeq ($(CONFIG_SEC_KUNIT), y)
 ifeq ($(CONFIG_UML), y)
-obj-$(CONFIG_SEC_KUNIT) += kunit_test/
 else
 obj-$(CONFIG_USB_TYPEC_MANAGER_NOTIFIER_TEST)    += kunit_test/usb_typec_manager_notifier_test.o
 endif
