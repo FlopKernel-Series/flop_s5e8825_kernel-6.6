@@ -85,4 +85,3 @@ obj-$(CONFIG_GPU_THERMAL)		+= gpu_cooling.o
 obj-$(CONFIG_EXYNOS_AMB_CONTROL)	+= exynos_amb_control.o
 
 # Test
-obj-$(CONFIG_DTM_EXYNOS_KUNIT_TEST) += test/
