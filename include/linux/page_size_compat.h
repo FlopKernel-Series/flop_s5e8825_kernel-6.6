@@ -103,7 +103,7 @@ static __always_inline unsigned long calc_vm_flag_bits(struct file *file, unsign
 	unsigned long flag_bits = __calc_vm_flag_bits(file, flags);
 
 	if (static_branch_unlikely(&page_shift_compat_enabled))
-		flag_bits |= _calc_vm_trans(flags, __MAP_NO_COMPAT,  __VM_NO_COMPAT );
+		flag_bits |= (flags & __MAP_NO_COMPAT) ? __VM_NO_COMPAT : 0;
 
 	return flag_bits;
 }
