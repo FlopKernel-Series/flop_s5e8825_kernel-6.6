@@ -132,12 +132,10 @@ int xhci_exynos_alloc_event_ring(struct xhci_hcd *xhci, gfp_t flags)
 	}
 
 	g_xhci_exynos_audio->ir->ir_set = &xhci->run_regs->ir_set[1];
-#if !IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
 	g_xhci_exynos_audio->save_addr = dma_alloc_coherent(dev, PAGE_SIZE, &dma, flags);
 	g_xhci_exynos_audio->save_dma = dma;
 	xhci_info(xhci, "// Save address = 0x%llx (DMA), %p (virt)",
 		  (unsigned long long)g_xhci_exynos_audio->save_dma, g_xhci_exynos_audio->save_addr);
-#endif
 	if ((xhci->quirks & XHCI_USE_URAM_FOR_EXYNOS_AUDIO)) {
 		/* for AUDIO erst */
 		g_xhci_exynos_audio->ir->event_ring =
@@ -541,7 +539,7 @@ static int xhci_alloc_segments_for_ring_uram(struct xhci_hcd *xhci,
 	bool chain_links;
 
 	/* Set chain bit for 0.95 hosts, and for isoc rings on AMD 0.96 host */
-	chain_links = ! !(xhci_link_trb_quirk(xhci) || (type == TYPE_ISOC && (xhci->quirks & XHCI_AMD_0x96_HOST)));
+	chain_links = xhci_link_chain_quirk(xhci, type);
 
 	if (type == TYPE_ISOC) {
 		prev = xhci_segment_alloc_uram_ep(xhci, cycle_state, max_packet, flags, 0, endpoint_type);
@@ -646,19 +644,35 @@ int xhci_exynos_vendor_init(struct xhci_hcd *xhci)
 void xhci_exynos_vendor_cleanup(struct xhci_hcd *xhci)
 {
 	struct device *dev = xhci_to_hcd(xhci)->self.sysdev;
+	struct xhci_exynos_audio *audio = g_xhci_exynos_audio;
 
-	dma_free_coherent(dev, sizeof(PAGE_SIZE),
-				g_xhci_exynos_audio->save_addr,
-				g_xhci_exynos_audio->save_dma);
+	if (!audio || !audio->ir)
+		return;
 
-	if (!(xhci->quirks & XHCI_USE_URAM_FOR_EXYNOS_AUDIO)) {
-		xhci_ring_free(xhci, g_xhci_exynos_audio->ir->event_ring);
-		g_xhci_exynos_audio->ir->event_ring = NULL;
+	if (audio->save_addr) {
+		dma_free_coherent(dev, PAGE_SIZE, audio->save_addr, audio->save_dma);
+		audio->save_addr = NULL;
+		audio->save_dma = 0;
+	}
 
-		dma_free_coherent(dev,
-				sizeof(struct xhci_erst_entry) * ERST_NUM_SEGS,
-				g_xhci_exynos_audio->ir->erst.entries,
-				g_xhci_exynos_audio->ir->erst.erst_dma_addr);
+	if (audio->ir->event_ring) {
+		if (xhci->quirks & XHCI_USE_URAM_FOR_EXYNOS_AUDIO)
+			xhci_exynos_ring_free(xhci, audio->ir->event_ring);
+		else
+			xhci_ring_free(xhci, audio->ir->event_ring);
+		audio->ir->event_ring = NULL;
+	}
+
+	if (audio->ir->erst.entries) {
+		if (xhci->quirks & XHCI_USE_URAM_FOR_EXYNOS_AUDIO)
+			iounmap(audio->ir->erst.entries);
+		else
+			dma_free_coherent(dev,
+					sizeof(struct xhci_erst_entry) * ERST_NUM_SEGS,
+					audio->ir->erst.entries,
+					audio->ir->erst.erst_dma_addr);
+		audio->ir->erst.entries = NULL;
+		audio->ir->erst.erst_dma_addr = 0;
 	}
 }
 EXPORT_SYMBOL_GPL(xhci_exynos_vendor_cleanup);
@@ -779,17 +793,16 @@ int xhci_exynos_audio_alloc(struct device *parent)
 {
 	dma_addr_t	dma;
 
+	if (g_xhci_exynos_audio)
+		return 0;
+
 	dev_info(parent, "%s\n", __func__);
 
 	g_xhci_exynos_audio = devm_kzalloc(parent, sizeof(struct xhci_exynos_audio), GFP_KERNEL);
-	memset(g_xhci_exynos_audio, 0, sizeof(struct xhci_exynos_audio));
+	if (!g_xhci_exynos_audio)
+		return -ENOMEM;
 
-#if IS_ENABLED(CONFIG_USB_XHCI_SIDEBAND)
-	g_xhci_exynos_audio->save_addr = dma_alloc_coherent(parent, PAGE_SIZE, &dma, GFP_KERNEL);
-	g_xhci_exynos_audio->save_dma = dma;
-	dev_info(parent, "// Save address = 0x%llx (DMA), %p (virt)",
-		  (unsigned long long)g_xhci_exynos_audio->save_dma, g_xhci_exynos_audio->save_addr);
-#endif
+	memset(g_xhci_exynos_audio, 0, sizeof(struct xhci_exynos_audio));
 
 	/* In data buf alloc */
 	g_xhci_exynos_audio->in_addr = dma_alloc_coherent(parent,
