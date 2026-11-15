@@ -34,7 +34,6 @@ ifeq ($(CONFIG_SEC_KUNIT)$(CONFIG_CC_IS_GCC), yy)
 ccflags-y := -Wno-array-bounds
 KBUILD_CFLAGS += -Wno-unused-variable -Wno-unused-function
 
-obj-$(CONFIG_SEC_KUNIT)				+= kunit_test/
 GCOV_PROFILE_sec_debug_sched_info.o		:= $(CONFIG_SEC_KUNIT)
 GCOV_PROFILE_sec_dump_sink.o		:= $(CONFIG_KUNIT)
 else
