@@ -11,6 +11,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/usb.h>
+#include <linux/usb/exynos_audio.h>
 #include <linux/usb/hcd.h>
 
 #include "../host/xhci-plat.h"
@@ -91,7 +92,11 @@ int dwc3_host_init(struct dwc3 *dwc)
 	if (irq < 0)
 		return irq;
 
-	xhci = platform_device_alloc("xhci-hcd", PLATFORM_DEVID_AUTO);
+	if (exynos_usb_audio_use_legacy() &&
+	    device_property_read_bool(dwc->dev, "usb_audio_offloading"))
+		xhci = platform_device_alloc("xhci-hcd-exynos", PLATFORM_DEVID_AUTO);
+	else
+		xhci = platform_device_alloc("xhci-hcd", PLATFORM_DEVID_AUTO);
 	if (!xhci) {
 		dev_err(dwc->dev, "couldn't allocate xHCI device\n");
 		return -ENOMEM;

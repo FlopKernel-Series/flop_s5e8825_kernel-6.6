@@ -221,8 +221,14 @@ struct snd_usb_platform_ops {
 	void (*disconnect_cb)(struct snd_usb_audio *chip);
 	void (*suspend_cb)(struct usb_interface *intf, pm_message_t message);
 	void (*resume_cb)(struct usb_interface *intf);
+	int (*open_cb)(struct snd_usb_substream *subs);
+	int (*close_cb)(struct snd_usb_substream *subs);
+	int (*prepare_cb)(struct snd_usb_substream *subs);
 };
 
 int snd_usb_register_platform_ops(struct snd_usb_platform_ops *ops);
 int snd_usb_unregister_platform_ops(void);
+int snd_usb_platform_pcm_open(struct snd_usb_substream *subs);
+int snd_usb_platform_pcm_close(struct snd_usb_substream *subs);
+int snd_usb_platform_pcm_prepare(struct snd_usb_substream *subs);
 #endif /* __USBAUDIO_CARD_H */

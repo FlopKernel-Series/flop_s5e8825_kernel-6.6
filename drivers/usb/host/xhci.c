@@ -3096,7 +3096,12 @@ void xhci_reset_bandwidth(struct usb_hcd *hcd, struct usb_device *udev)
 	for (i = 0; i < 31; i++) {
 		if (virt_dev->eps[i].new_ring) {
 			xhci_debugfs_remove_endpoint(xhci, virt_dev, i);
-			xhci_ring_free(xhci, virt_dev->eps[i].new_ring);
+			if (xhci_vendor_is_usb_offload_enabled(xhci, virt_dev, i)) {
+				xhci->quirks |= BIT_ULL(60);
+				xhci_vendor_free_transfer_ring(xhci, virt_dev, i);
+			} else {
+				xhci_ring_free(xhci, virt_dev->eps[i].new_ring);
+			}
 			virt_dev->eps[i].new_ring = NULL;
 		}
 	}
@@ -5500,9 +5505,30 @@ void xhci_init_driver(struct hc_driver *drv,
 			drv->update_hub_device = over->update_hub_device;
 		if (over->hub_control)
 			drv->hub_control = over->hub_control;
+		if (over->bus_suspend)
+			drv->bus_suspend = over->bus_suspend;
+		if (over->bus_resume)
+			drv->bus_resume = over->bus_resume;
 	}
 }
 EXPORT_SYMBOL_GPL(xhci_init_driver);
+
+struct xhci_vendor_ops *xhci_vendor_get_ops(struct xhci_hcd *xhci)
+{
+	return xhci->vendor_ops;
+}
+EXPORT_SYMBOL_GPL(xhci_vendor_get_ops);
+
+bool xhci_vendor_is_usb_offload_enabled(struct xhci_hcd *xhci,
+		struct xhci_virt_device *virt_dev, unsigned int ep_index)
+{
+	struct xhci_vendor_ops *ops = xhci_vendor_get_ops(xhci);
+
+	if (ops && ops->is_usb_offload_enabled)
+		return ops->is_usb_offload_enabled(xhci, virt_dev, ep_index);
+	return false;
+}
+EXPORT_SYMBOL_GPL(xhci_vendor_is_usb_offload_enabled);
 
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR(DRIVER_AUTHOR);
