@@ -10,6 +10,7 @@ menuconfig USDM_PANEL_TFT_COMMON
 menuconfig USDM_PANEL_HX83102E_GTA4XLS_00
 	tristate "HX83102E_GTA4XLS_00 DDI Panel Driver"
 	depends on USDM_PANEL_TFT_COMMON
+	depends on USDM_PANEL_BLIC
 	default n
 	help
 		This enables HX83102E_GTA4XLS_00 DDI dependent panel drivers of
