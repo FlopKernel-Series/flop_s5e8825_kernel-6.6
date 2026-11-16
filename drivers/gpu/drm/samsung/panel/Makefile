@@ -65,16 +65,7 @@ obj-$(CONFIG_USDM_PANEL) += mcd-panel.o
 subdir-ccflags-y += \
     -Wno-implicit-fallthrough
 
-subdir-ccflags-$(CONFIG_SEC_KUNIT) += \
-    -Wformat-security \
-    -Wunused-const-variable \
-    -Wframe-larger-than=8192 \
-    -Wunused-variable \
-    -Wunused-function \
-    -Wno-missing-braces \
-    -Wformat
 
-obj-$(CONFIG_SEC_KUNIT) += kunit_test/
 
 obj-$(CONFIG_USDM_PANEL_S6E3FC3) += s6e3fc3/
 

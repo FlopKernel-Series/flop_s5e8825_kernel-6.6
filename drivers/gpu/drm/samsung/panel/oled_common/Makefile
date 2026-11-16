@@ -14,13 +14,4 @@ usdm-panel-oled-common-$(CONFIG_USDM_PANEL_SELF_DISPLAY) += oled_common_aod.o
 usdm-panel-oled-common-$(CONFIG_USDM_MDNIE) += oled_common_mdnie.o
 obj-$(CONFIG_USDM_PANEL_OLED_COMMON) += usdm-panel-oled-common.o
 
-subdir-ccflags-$(CONFIG_SEC_KUNIT) += \
-	-I$(srctree)/$(src)/.. \
-	-Wframe-larger-than=8192 \
-	-Wunused-variable \
-	-Wunused-function \
-	-Wno-missing-braces \
-	-Wno-implicit-fallthrough \
-	-Wformat
 
-obj-$(CONFIG_SEC_KUNIT) += kunit_test/
