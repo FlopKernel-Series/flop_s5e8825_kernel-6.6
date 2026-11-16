@@ -35,4 +35,19 @@ static inline int of_get_named_gpio(const struct device_node *np,
 
 #endif /* CONFIG_OF_GPIO */
 
+/*
+ * Legacy of_gpio_count()/of_get_gpio() helpers removed upstream. Samsung
+ * BSP drivers still call them; they are exact restores of the removed
+ * semantics.
+ */
+static inline int of_gpio_count(struct device_node *np)
+{
+	return of_property_count_u32_elems(np, "gpios");
+}
+
+static inline int of_get_gpio(struct device_node *np, int index)
+{
+	return of_get_named_gpio(np, "gpios", index);
+}
+
 #endif /* __LINUX_OF_GPIO_H */
