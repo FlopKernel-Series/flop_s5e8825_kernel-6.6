@@ -138,7 +138,7 @@ static inline void exynos_dqe_suspend(struct exynos_dqe *dqe) {}
 static inline void exynos_dqe_resume(struct exynos_dqe *dqe) {}
 static inline void exynos_dqe_state(struct exynos_dqe *dqe,
 			enum dqe_reg_type type,	bool *enabled) {}
-static inline struct exynos_dqe *exynos_dqe_register(struct decon_device *decon) {}
+static inline struct exynos_dqe *exynos_dqe_register(struct decon_device *decon) { return NULL; }
 #endif
 
 #endif /* __EXYNOS_DRM_DQE_H__ */
