@@ -1,4 +1,6 @@
 /dts-v1/;
+/plugin/;
+#include "../s5e8825_6.6_board.dtsi"
 
 / {
 	compatible = "SAMSUNG,GTA4XLS_EUR_OPEN", "SAMSUNG,EXYNOS8825";
