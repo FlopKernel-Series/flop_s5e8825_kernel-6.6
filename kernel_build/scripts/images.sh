@@ -28,13 +28,22 @@ build_images() {
     echo -e "\n$(log_info "Building vendor_boot image...")"
     cd "$DLKM_RAMDISK_DIR"
     find . | cpio --quiet -o -H newc -R root:root | lz4 -9cl > "../ramdisk_dlkm.lz4"
+
+    clang -std=c11 -D_FILE_OFFSET_BITS=64 -Os \
+        -o "$TMPDIR/vendor_boot_repack_host" \
+        "$KDIR/kernel_build/scripts/vendor_boot_repack.c" || exit 1
+    "$TMPDIR/vendor_boot_repack_host" "$PREBUILT_VENDOR_BOOT" \
+        "$TMPDIR/ramdisk_dlkm.lz4" "$OUT_DTBIMAGE" \
+        "$OUT_VENDORBOOTIMG" || exit 1
+
+    echo -e "$(log_info "Building legacy AOSP vendor_boot image...")"
     cd "../ramdisk_platform"
     find . | cpio --quiet -o -H newc -R root:root | lz4 -9cl > "../ramdisk_platform.lz4"
     cd ".."
     echo "buildtime_bootconfig=enable" > bootconfig
 
     "$MKBOOTIMG" --header_version 4 \
-        --vendor_boot "$OUT_VENDORBOOTIMG" \
+        --vendor_boot "$OUT_VENDORBOOTIMG_LEGACY" \
         --vendor_bootconfig "$(pwd)/bootconfig" \
         --dtb "$OUT_DTBIMAGE" \
         --vendor_ramdisk "$(pwd)/ramdisk_platform.lz4" \

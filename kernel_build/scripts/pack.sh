@@ -25,20 +25,24 @@ packing() {
     fi
 
     if [ "$DO_TAR" = "1" ]; then
-        echo -e "\n$(log_info "Building TAR file...")"
+        echo -e "\n$(log_info "Building TAR files...")"
         cd "$KDIR/kernel_build"
-        rm -f "$TAR_PATH"
+        rm -f "$TAR_PATH" "$TAR_PATH_LEGACY"
         lz4 -c -12 -B6 --content-size "$OUT_BOOTIMG" > boot.img.lz4 2>/dev/null
         lz4 -c -12 -B6 --content-size "$OUT_VENDORBOOTIMG" > vendor_boot.img.lz4 2>/dev/null
+        lz4 -c -12 -B6 --content-size "$OUT_VENDORBOOTIMG_LEGACY" > vendor_boot_legacy.img.lz4 2>/dev/null
         if [ -f "$OUT_DTBOIMAGE" ]; then
             lz4 -c -12 -B6 --content-size "$OUT_DTBOIMAGE" > dtbo.img.lz4 2>/dev/null
             tar -cf "$TAR_PATH" boot.img.lz4 vendor_boot.img.lz4 dtbo.img.lz4
-            rm -f boot.img.lz4 vendor_boot.img.lz4 dtbo.img.lz4
+            tar -cf "$TAR_PATH_LEGACY" boot.img.lz4 vendor_boot_legacy.img.lz4 dtbo.img.lz4
+            rm -f boot.img.lz4 vendor_boot.img.lz4 vendor_boot_legacy.img.lz4 dtbo.img.lz4
         else
             tar -cf "$TAR_PATH" boot.img.lz4 vendor_boot.img.lz4
-            rm -f boot.img.lz4 vendor_boot.img.lz4
+            tar -cf "$TAR_PATH_LEGACY" boot.img.lz4 vendor_boot_legacy.img.lz4
+            rm -f boot.img.lz4 vendor_boot.img.lz4 vendor_boot_legacy.img.lz4
         fi
         cd "$KDIR"
         echo -e "$(log_info "Output: $TAR_PATH")"
+        echo -e "$(log_info "Output: $TAR_PATH_LEGACY")"
     fi
 }
