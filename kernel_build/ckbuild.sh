@@ -94,7 +94,7 @@ export PATH="$(pwd)/kernel_build/bin:$PATH"
 
 # Directories
 AK3_DIR="$WP/AK3-1280"
-AK3_BRANCH="floppy-unity"
+AK3_BRANCH="floppy-unity-6.6"
 KDIR="$(readlink -f .)"
 USE_GCC_BINUTILS="0"
 
