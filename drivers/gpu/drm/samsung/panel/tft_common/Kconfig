@@ -6,3 +6,12 @@ menuconfig USDM_PANEL_TFT_COMMON
 		This enables TFT_COMMON DDI dependent panel drivers of
 		common panel driver. say Y, if you have a panel based on
 		the TFT_COMMON DDI.
+
+menuconfig USDM_PANEL_HX83102E_GTA4XLS_00
+	tristate "HX83102E_GTA4XLS_00 DDI Panel Driver"
+	depends on USDM_PANEL_TFT_COMMON
+	default n
+	help
+		This enables HX83102E_GTA4XLS_00 DDI dependent panel drivers of
+		common panel driver. say Y, if you have a panel based on
+		the HX83102E_GTA4XLS_00 DDI.
