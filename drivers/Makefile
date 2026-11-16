@@ -258,6 +258,7 @@ obj-y += sensorhub/
 obj-y += nfc/snvm/
 obj-y += vibrator/dc/
 obj-y += input/touchscreen/focaltech/ft3519/
+obj-y += input/touchscreen/himax/hx83xxx_spi/
 obj-y += sensors_lego/
 obj-y += battery/charger/s2mf301_charger/
 obj-y += battery/common/
