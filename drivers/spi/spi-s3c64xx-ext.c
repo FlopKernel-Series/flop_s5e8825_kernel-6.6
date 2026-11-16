@@ -2224,6 +2224,47 @@ static int s3c64xx_spi_resume(struct device *dev)
 }
 #endif /* CONFIG_PM_SLEEP */
 
+#if IS_ENABLED(CONFIG_SAMSUNG_TUI)
+int stui_spi_lock(struct spi_master *spi)
+{
+	int ret = 0;
+	struct s3c64xx_spi_driver_data *sdd = spi_master_get_devdata(spi);
+
+	spi_bus_lock(spi);
+
+#ifdef CONFIG_PM
+	ret = pm_runtime_get_sync(&sdd->pdev->dev);
+	if (ret < 0) {
+		pr_err("%s, pm_runtime_get_sync failed:%d\n", __func__, ret);
+		spi_bus_unlock(spi);
+	}
+#endif
+
+	return ret;
+}
+EXPORT_SYMBOL(stui_spi_lock);
+
+int stui_spi_unlock(struct spi_master *spi)
+{
+	int ret = 0;
+	struct s3c64xx_spi_driver_data *sdd = spi_master_get_devdata(spi);
+
+	spi_bus_unlock(spi);
+
+#ifdef CONFIG_PM
+	pm_runtime_mark_last_busy(&sdd->pdev->dev);
+	ret = pm_runtime_put_autosuspend(&sdd->pdev->dev);
+	if (ret < 0) {
+		pr_err("%s, pm_runtime_put_autosuspend failed:%d\n", __func__, ret);
+		return ret;
+	}
+#endif
+
+	return ret;
+}
+EXPORT_SYMBOL(stui_spi_unlock);
+#endif
+
 static const struct dev_pm_ops s3c64xx_spi_pm = {
 	SET_SYSTEM_SLEEP_PM_OPS(s3c64xx_spi_suspend, s3c64xx_spi_resume)
 	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(s3c64xx_spi_suspend_noirq, s3c64xx_spi_resume_noirq)
