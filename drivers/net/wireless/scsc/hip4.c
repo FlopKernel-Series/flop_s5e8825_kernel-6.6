@@ -629,7 +629,7 @@ static struct mbulk *hip4_skb_to_mbulk(struct scsc_service *service, struct hip4
 {
 	struct mbulk        *m = NULL, *head = NULL;
 	void                *sig = NULL, *b_data = NULL;
-	size_t              payload = 0, memcpy_len = 0;
+	size_t              payload = 0;
 	u8                  pool_id = ctrl_packet ? MBULK_POOL_ID_CTRL : MBULK_POOL_ID_DATA;
 	u8                  headroom = 0, tailroom = 0;
 	enum mbulk_class    clas = ctrl_packet ? MBULK_CLASS_FROM_HOST_CTL : MBULK_CLASS_FROM_HOST_DAT;
@@ -761,6 +761,7 @@ static struct mbulk *hip4_skb_to_mbulk(struct scsc_service *service, struct hip4
 				}
 			}
 #else
+			size_t memcpy_len;
 			/* Copy payload skipping the signal data
 			   If it is a chained mbulk, then consider for the headroom when copying the payload
 			   for head mbulk as the m->dat_bufsz will be 2028 bytes (pool-segsiz - m->sigsz).
