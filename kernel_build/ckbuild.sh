@@ -273,8 +273,8 @@ if [ "$DO_PERM" == "1" ]; then
 fi
 
 ZIP_PATH="$KDIR/kernel_build/FloppyB_$FK_VER-$FK_TYPE-$CODENAME-$DATE.zip"
-TAR_PATH="$KDIR/kernel_build/Floppy_${FK_VER}-AOSP-${FK_TYPE_TAR}-${CODENAME}-${DATE}.tar"
-TAR_PATH_LEGACY="$KDIR/kernel_build/Floppy_${FK_VER}-AOSPLegacy-${FK_TYPE_TAR}-${CODENAME}-${DATE}.tar"
+TAR_PATH="$KDIR/kernel_build/FloppyB_${FK_VER}-AOSP-${FK_TYPE_TAR}-${CODENAME}-${DATE}.tar"
+TAR_PATH_LEGACY="$KDIR/kernel_build/FloppyB_${FK_VER}-AOSPLegacy-${FK_TYPE_TAR}-${CODENAME}-${DATE}.tar"
 NH_MODULE_PATH=""
 export NH_MODULE_PATH
 
