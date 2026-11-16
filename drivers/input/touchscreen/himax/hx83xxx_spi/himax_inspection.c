@@ -2789,6 +2789,7 @@ static int himax_do_fw_update(const u8 *data, size_t size)
 	default:
 		E("%s %s: does not support fw size %d\n",
 				HIMAX_LOG_TAG, __func__, (int)size);
+		ret = FW_ERR_DOWNLOAD;
 	}
 
 	if (ret == 0)
