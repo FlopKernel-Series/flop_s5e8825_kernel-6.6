@@ -28,22 +28,26 @@ shift
 
 case "$TARGET_DEVICE" in
     a25x)
-        DEFAULT_DEFCONFIG="a25x_defconfig"
+        DEFAULT_DEFCONFIG="s5e8825_defconfig"
+        DEVICE_FRAGMENT="a25x.config"
         DEVICE="Galaxy A25 5G"
         CODENAME="a25x"
         ;;
     m34x)
-        DEFAULT_DEFCONFIG="m34x_defconfig"
+        DEFAULT_DEFCONFIG="s5e8825_defconfig"
+        DEVICE_FRAGMENT="m34x.config"
         DEVICE="Galaxy M34 5G"
         CODENAME="m34x"
         ;;
     gta4xls)
-        DEFAULT_DEFCONFIG="gta4xls_defconfig"
+        DEFAULT_DEFCONFIG="s5e8825_defconfig"
+        DEVICE_FRAGMENT="gta4xls.config"
         DEVICE="Galaxy Tab S6 Lite 2024 LTE"
         CODENAME="gta4xls"
         ;;
     gta4xlswifi)
-        DEFAULT_DEFCONFIG="gta4xlswifi_defconfig"
+        DEFAULT_DEFCONFIG="s5e8825_defconfig"
+        DEVICE_FRAGMENT="gta4xlswifi.config"
         DEVICE="Galaxy Tab S6 Lite 2024 Wi-Fi"
         CODENAME="gta4xlswifi"
         ;;

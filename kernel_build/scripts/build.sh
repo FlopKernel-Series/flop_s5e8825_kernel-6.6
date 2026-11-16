@@ -26,6 +26,7 @@ build() {
 
     # Build config fragments list
     FRAGMENTS=""
+    [ "$DO_REGEN" != "1" ] && FRAGMENTS="$FRAGMENTS $DEVICE_FRAGMENT"
     [ "$DO_KSU" = "1" ] && FRAGMENTS="$FRAGMENTS ksu.config"
     [ "$DO_SUKI" = "1" ] && FRAGMENTS="$FRAGMENTS sukisu.config"
     [ "$DO_XXKSU" = "1" ] && FRAGMENTS="$FRAGMENTS xxksu.config"
@@ -34,9 +35,9 @@ build() {
     [ "$KCFI" = "1" ] && [ "$DO_REGEN" != "1" ] && FRAGMENTS="$FRAGMENTS kcfi.config"
 
     if [ "$DO_QUIET" = "1" ]; then
-        make -j$(nproc --all) O=$OUTDIR CC="$CC" "$DEFCONFIG" $FRAGMENTS > /dev/null | tee log.txt
+        make O=$OUTDIR CC="$CC" "$DEFCONFIG" $FRAGMENTS > /dev/null | tee log.txt
     else
-        make -j$(nproc --all) O=$OUTDIR CC="$CC" "$DEFCONFIG" $FRAGMENTS 2>&1 | tee log.txt
+        make O=$OUTDIR CC="$CC" "$DEFCONFIG" $FRAGMENTS 2>&1 | tee log.txt
     fi
 
     if [ "$IS_RELEASE" = "1" ]; then
