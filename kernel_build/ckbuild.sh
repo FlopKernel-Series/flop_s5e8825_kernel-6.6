@@ -37,6 +37,16 @@ case "$TARGET_DEVICE" in
         DEVICE="Galaxy M34 5G"
         CODENAME="m34x"
         ;;
+    gta4xls)
+        DEFAULT_DEFCONFIG="gta4xls_defconfig"
+        DEVICE="Galaxy Tab S6 Lite 2024 LTE"
+        CODENAME="gta4xls"
+        ;;
+    gta4xlswifi)
+        DEFAULT_DEFCONFIG="gta4xlswifi_defconfig"
+        DEVICE="Galaxy Tab S6 Lite 2024 Wi-Fi"
+        CODENAME="gta4xlswifi"
+        ;;
     *)
         echo -e "\n$(log_err "Unknown device: $TARGET_DEVICE")\n"
         exit 1
