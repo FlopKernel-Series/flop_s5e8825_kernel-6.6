@@ -607,3 +607,4 @@ config SDP_ADAPTIVE_MIPI_TEST
 	  TODO: Describe config fully.
 
 source "drivers/gpu/drm/samsung/panel/s6e3fc3/Kconfig"
+source "drivers/gpu/drm/samsung/panel/tft_common/Kconfig"

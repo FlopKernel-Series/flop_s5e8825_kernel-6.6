@@ -79,3 +79,5 @@ obj-$(CONFIG_SEC_KUNIT) += kunit_test/
 obj-$(CONFIG_USDM_PANEL_S6E3FC3) += s6e3fc3/
 
 obj-$(CONFIG_USDM_PANEL_OLED_COMMON) += oled_common/
+
+obj-$(CONFIG_USDM_PANEL_TFT_COMMON) += tft_common/
