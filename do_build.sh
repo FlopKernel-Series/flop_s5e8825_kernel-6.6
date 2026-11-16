@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-all_devs=("a25x" "m34x")
+all_devs=("a25x" "m34x" "gta4xls" "gta4xlswifi")
 
 # Wrap to ckbuild.sh
 export WP=${WP:-$(realpath $PWD/../)}
